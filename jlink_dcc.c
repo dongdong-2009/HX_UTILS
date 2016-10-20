@@ -363,17 +363,27 @@ static OS_INTERWORK OS_ARM_FUNC void _WriteDCC(uint Data) {
 #endif
 #endif
 }
-
 static void jlink_dcc_putc(int ch, int d) {
     uint packet;
     uint busy;
-    packet = 0x93800000 | (ch << 16);
-    packet |= d;
+	//54<color16><d8>
+    packet = 0x54000000 | (ch << 16);
+    packet |= (d&0xFFu);
     do {
         busy = _ReadDCCStat();
     } while((busy & 2u));
     _WriteDCC(packet);
 }
+//static void jlink_dcc_putc(int ch, int d) {
+//    uint packet;
+//    uint busy;
+//    packet = 0x93800000 | (ch << 16);
+//    packet |= d;
+//    do {
+//        busy = _ReadDCCStat();
+//    } while((busy & 2u));
+//    _WriteDCC(packet);
+//}
 static void jlink_osterm_send_char(int c)
 {
 //    int i;
@@ -422,11 +432,8 @@ static int dcc_recv(int *d)
     return 0;      // Nothing received
   }
   Data = _ReadDCC();
-  if ((Data & 0xFF000000) == 0x93000000) {
-    unsigned Channel = (Data >> 19u) & 0x1Fu;
-	if(Channel != DCC_CHANNEL_OS)
-		return 0;
-    *d= (Data >> 1) & 0xFFu;
+  if((Data&0xFF000000u) == 0x55000000u){
+	*d = Data & 0xFFu;
 	return 1;
   }
   return 0;

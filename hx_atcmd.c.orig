@@ -2,15 +2,8 @@
 #include "hx_board.h"
 #include "stdio.h"
 #include "string.h"
-#include "stdarg.h"
 
-static int step = 0;
-int atc_set_step(int s)
-{
-	int res = step;
-	step = s;
-	return res;
-}
+
 /*
 	arguements:
 	at_tbl : define at cmd list and operation functions
@@ -32,6 +25,7 @@ int atc_sequence_poll(
 )
 {
     int res;
+    static int step = 0;
     if(step >= tbl_len)
         return tbl_len;
     static int is_send = 0;
@@ -138,31 +132,31 @@ int atc_gets_timeout(char *bf,int bl,int t)
 {  
 	return hx_uart_gets_timeout(UART_AT_PORT,bf,bl,t);
 }
-void atc_gets_block(char *bf, int bl)
+int atc_gets_block(char *bf, int bl)
 {   
-	 hx_uart_gets_block(UART_AT_PORT,bf,bl);
+	return hx_uart_gets_block(UART_AT_PORT,bf,bl);
 }
-void atc_rxclr(void)
+int atc_rxclr(void)
 {
-     hx_uart_atc_rxclr(UART_AT_PORT);
+    return hx_uart_atc_rxclr(UART_AT_PORT);
 }
-void atc_putc(int c)
+int atc_putc(int c)
 {
-     hx_uart_putc(UART_AT_PORT,c);
+    return hx_uart_putc(UART_AT_PORT,c);
 }
-void atc_send(const char *d,int l)
+int atc_send(const char *d,int l)
 {
-     hx_uart_send(UART_AT_PORT,d,l);
+    return hx_uart_send(UART_AT_PORT,d,l);
 }
-void atc_put(const  char *s)
+int atc_put(const  char *s)
 {
-     hx_uart_put(UART_AT_PORT,s);
+    return hx_uart_put(UART_AT_PORT,s);
 }
-void atc_puts(const  char *s)
+int atc_puts(const  char *s)
 {
-     hx_uart_puts(UART_AT_PORT,s);
+    return hx_uart_puts(UART_AT_PORT,s);
 }
-int atc_printf(const char *format, ...)
+int atc_printf(...)
 {
     int port_nr = UART_AT_PORT;
 

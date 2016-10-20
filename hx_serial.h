@@ -44,7 +44,7 @@ extern int hx_uart_printf(int port_nr, const  char *format, ...);
 /*
 	init
 */
-extern int hx_uart_init(int port_nr, int bps);
+extern int hx_uart_init(int port_nr, int bps, int pclk);
 
 #endif
 

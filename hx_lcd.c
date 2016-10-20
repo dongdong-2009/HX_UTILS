@@ -1,8 +1,7 @@
-#include "board.h"
-#include "lcd.h"
+#include "hx_utils.h"
+#include "hx_board.h"
 #include "string.h"
 #include "stdio.h"
-#include "hx_utils.h"
 
 #define LCD_COLS_PXL		(240)
 #define LCD_COLS_PAGE		(240)

@@ -8,7 +8,6 @@
 #ifndef __HX_DEBUG_H__
 #define __HX_DEBUG_H__
 
-#include "hx_target.h"
 
 #ifdef __DEBUG__
 #define __HX_ENABLE_DEBUG__
@@ -19,7 +18,7 @@
 /*
 	Debug serial data.
 */
-//#define HX_DEBUG_SERIAL_INPUT		(0)
+//#define HX_DEBUG_SERIAL_INPUT			(0)
 //#define HX_DEBUG_SERIAL_OUTPUT		(0)
 
 /*
@@ -29,8 +28,8 @@
 #define	HX_OUTPUT_STATE_DEFAULT			(1)
 
 extern int HX_DBG_ENABLE(int en);
+extern int  HX_DBG_PRINT(const char *format, ...);
 
-#define  HX_DBG_PRINT(...)       hx_uart_printf(UART_DEBUG_PORT,__VA_ARGS__)
 #define  HX_DBG_PRINTLN(...)			\
 	do{									\
 		HX_DBG_PRINT(__VA_ARGS__);		\
@@ -47,15 +46,6 @@ do{	\
 		HX_DBG_PRINT("%02X",(int)p[i]);\
 	}\
 }while(0)	
-#else
-
-#define  HX_DBG_ENABLE(n)		 (0)
-#define  HX_DBG_PRINT(...)       do {} while(0)
-#define  HX_DBG_PRINTLN(...)	 do {} while(0)
-#define  HX_DBG_ERROR(rc)        do {} while(0)
-#define  HX_DBG_DUMP_HEX(buf,size)	do {} while(0)
-	
-#endif
 
 #define HX_ABORT(s)												\
 do{																\
@@ -66,11 +56,35 @@ do{																\
 }while(0)
 	
 #define HX_ASSERT(n)			do{	if(!(n)){ABORT(#n);} }while(0)
+#else
+
+#define  HX_DBG_ENABLE(...)	
+#define  HX_DBG_PRINT(...)    
+#define  HX_DBG_PRINTLN(...)	
+#define  HX_DBG_ERROR(...)   
+#define  HX_DBG_DUMP_HEX(...)	
+#define  HX_ABORT(...)		
+#define  HX_ASSERT(...)
 	
+#endif
+
+
 //==========================================================
 //Debug info for packet add/get
 #define PK_SHOW_TAB_SIZE			(8)
 #define PK_SHOW_NAME_LEN			(PK_SHOW_TAB_SIZE*4)
+#define PK_DEBUG_FILL(p,n,x)	\
+{\
+	const char *name = #x;\
+	int len = strlen(name);\
+	len = PK_SHOW_NAME_LEN - len;\
+	HX_DBG_PRINT("\t%s",name);\
+	for(int i=0;i<len;i+=PK_SHOW_TAB_SIZE)\
+		HX_DBG_PRINT("\t");\
+	HX_DBG_PRINT("%d\t ",(int)(n));\
+	HX_DBG_PRINT("{%02X}",(int)(x));\
+	HX_DBG_PRINT("\r\n");\
+}
 #define PK_DEBUG_ARRAY(p,n,x)	\
 {\
 	const char *name = #x;\

@@ -1,9 +1,0 @@
-2016/9/6
-	porting vd7400 sim7100c 4g module.
-
-2016/8/30
-	fix many bugs
-	category cpu board for lowlevel porting structure.
-2016/8/22
-	fix bug, asc_to_hex()
-	first version .

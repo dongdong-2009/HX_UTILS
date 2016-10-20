@@ -8,7 +8,6 @@
 #ifndef __AT_PORT_H__
 #define __AT_PORT_H__
 
-#include "hx_target.h"
 #include "hx_serial.h"
 
 
@@ -66,20 +65,23 @@ extern int atc_sequence_poll(
 	void *msg
 );
 	
+extern int atc_set_step(int s);
 	
 #define ATCMD_DELAY(ms)	 	{"DELAY",NULL,ms,-1,NULL,}
-#define atc_getc_noblock(pc)	hx_uart_getc_noblock(UART_AT_PORT,pc)
-#define atc_getc_timeout(pc,t)	hx_uart_getc_timeout(UART_AT_PORT,pc,t)
-#define atc_getc_block(pc)		hx_uart_getc_block(UART_AT_PORT)
-#define atc_gets_noblock(bf,bl)		hx_uart_gets_noblock(UART_AT_PORT,bf,bl)
-#define atc_gets_timeout(bf,bl,t)	hx_uart_gets_timeout(UART_AT_PORT,bf,bl,t)
-#define atc_gets_block(bf,bl)		hx_uart_gets_block(UART_AT_PORT,bf,bl)
-#define atc_rxclr()			hx_uart_atc_rxclr(UART_AT_PORT)
-#define atc_putc(c)			hx_uart_putc(UART_AT_PORT,c)
-#define atc_send(d,l)		hx_uart_send(UART_AT_PORT,d,l)
-#define atc_put(s)			hx_uart_put(UART_AT_PORT,s)
-#define atc_puts(s)			hx_uart_puts(UART_AT_PORT,s)
-#define atc_printf(...)		hx_uart_printf(UART_AT_PORT,__VA_ARGS__)
+
+extern int atc_getc_noblock(int *pc);
+extern int atc_getc_timeout(int *pc,int t);
+extern int atc_getc_block(int *pc);
+extern int atc_gets_noblock(char *bf,int bl);
+extern int atc_gets_timeout(char *bf,int bl,int t);
+extern void atc_gets_block(char *bf, int bl);
+extern void atc_rxclr(void);
+extern void atc_putc(int c);
+extern void atc_send(const char *d,int l);
+extern void atc_put(const  char *s);
+extern void atc_puts(const  char *s);
+extern int atc_printf(const char *format, ...);
+
 
 //===============================================================
 //export at cmd drivers based on atcmd.c 

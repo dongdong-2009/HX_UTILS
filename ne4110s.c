@@ -1,8 +1,7 @@
-
-#include "hx_atcmd.h"
 #include "hx_utils.h"
+#include "hx_board.h"
 #include "string.h"
-#include "stdio.h"	
+#include "stdio.h"
 
 /*
 	NE4110 Module Config On Factory
@@ -189,32 +188,35 @@ struct NE4110_CFG_ST g_ne4110_cfg = {
 	{255,255,255,255},
 	{192,168,60,254},
 };
-#if HX_TARGET_BOARD == HX_DQ1300
-#include "includes.h"
-void ne4110_init(void)
-{
-	int res;
-	char ne_params[256];
-	char *p = ne_params;
-	p += sprintf(p,
-		"NC=%u"				// 0:static 1:dhcp
-		"&NP=%s"	//ip
-		"&NM=%s"	//mask
-		"&NG=%s"	//gateway
-		"&CA=180.89.58.27"	//rm ip
-		"&C1=9020"			//rm port
-	,ParamCardSt.g_ne4110_cfg.dhcp
-	,ParamCardSt.g_ne4110_cfg.ip
-	,ParamCardSt.g_ne4110_cfg.mask
-	,ParamCardSt.g_ne4110_cfg.gw
-	);
-	do{
-		res = ne4110_config(ne_params);
-		if(res){
-			HX_DBG_PRINTLN("NE4110S INIT Fail, Error Code(%d) . Retry in 3S.",res);
-			return ;
-		}
-	}while(res);
-	HX_DBG_PRINTLN("NE4110S INIT OK.");
-}
-#endif
+//#if HX_TARGET_BOARD == HX_DQ1300
+//#include "includes.h"
+//void ne4110_init(void)
+//{
+//	int res;
+//	char ne_params[256];
+//	char *p = ne_params;
+//	p += sprintf(p,
+//		"NC=%u"				// 0:static 1:dhcp
+//		"&NP=%s"	//ip
+//		"&NM=%s"	//mask
+//		"&NG=%s"	//gateway
+//		"&CA=180.89.58.27"	//rm ip
+//		"&C1=9020"			//rm port
+//	,ParamCardSt.g_ne4110_cfg.dhcp
+//	,ParamCardSt.g_ne4110_cfg.ip
+//	,ParamCardSt.g_ne4110_cfg.mask
+//	,ParamCardSt.g_ne4110_cfg.gw
+//	);
+//	do{
+//		res = ne4110_config(ne_params);
+//		if(res){
+//			HX_DBG_PRINTLN("NE4110S INIT Fail, Error Code(%d) . Retry in 3S.",res);
+//			return ;
+//		}
+//	}while(res);
+//	HX_DBG_PRINTLN("NE4110S INIT OK.");
+//}
+//#endif
+
+
+

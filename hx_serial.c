@@ -1,19 +1,8 @@
 #include "hx_utils.h"
-#include "hx_serial.h"
-#include "string.h"
+#include "hx_board.h"
 #include "stdarg.h"
 #include "stdio.h"
-#include "hx_target.h"
-#include "hx_debug.h"
-
-/*
-	Board UART need
-*/
-extern void HX_BRD_UART_DIS_INTR(int id);
-extern void HX_BRD_UART_EN_INTR(int id);
-extern void HX_BRD_UART_TX_START_BYTE(int id,int data);
-extern void HX_BRD_UART_TX_END_SESSION(int id);
-extern int  HX_BRD_UART_REOPEN(int id, int bps);
+#include "string.h"
 
 struct UART_CTX_T {
 	int rx_buf_size;
@@ -26,8 +15,8 @@ struct UART_CTX_T {
 	volatile int tx_write_pos;
 };
 
-#ifndef __HX_TARGET_H__
-#error must refer "hx_port.h"
+#ifndef __HX_BOARD_H__
+#error must refer "hx_board.h"
 #endif
 
 #if (UART0_RX_BUFF_SIZE > 0) && (UART0_TX_BUFF_SIZE > 0)
@@ -114,15 +103,18 @@ static void debug_serial_in(int id, int c)
 int hx_uart_atc_rxclr(int id)
 {
 	int res = -1;
+	if(id==HX_DEBUG_PORT){
+		return brd_dp_rxclr(id);
+	}
 	if(id>=UART_PORTS_NUM || id<0)
 		return -2;
 	
-	HX_BRD_UART_DIS_INTR(id);
+	cpu_interrupt_ctrl(0);
 	volatile struct UART_CTX_T *p_uart = &g_uart[id];
 	res = p_uart->rx_pos - p_uart->read_pos;
 	p_uart->rx_pos = 0;
 	p_uart->read_pos = 0;
-	HX_BRD_UART_EN_INTR(id);  
+	cpu_interrupt_ctrl(1); 
 	
 	return res;
 }
@@ -130,10 +122,14 @@ int hx_uart_getc_noblock(int id,int *c)
 {
 	int res = -1;
 	
+	if(id==HX_DEBUG_PORT){
+		return brd_dp_getc_noblock(id,c);
+	}
+	
 	if(id>=UART_PORTS_NUM || id<0)
 		return -2;
 	
-	HX_BRD_UART_DIS_INTR(id);
+	cpu_interrupt_ctrl(0);
 	
 	volatile struct UART_CTX_T *p_uart = &g_uart[id];
 	
@@ -152,7 +148,7 @@ int hx_uart_getc_noblock(int id,int *c)
 		}
 	}
 	
-	HX_BRD_UART_EN_INTR(id);  
+	cpu_interrupt_ctrl(1); 
 	
 	#ifdef HX_DEBUG_SERIAL_INPUT
 	debug_serial_in(id,*c);
@@ -259,10 +255,10 @@ static void wait_last_trans_complete(int id)
 {
 	int pos,wr;
 	do{
-		HX_BRD_UART_DIS_INTR(id); 
+		cpu_interrupt_ctrl(0); 
 		pos = g_uart[id].tx_pos;
 		wr = g_uart[id].tx_write_pos;
-		HX_BRD_UART_EN_INTR(id);  
+		cpu_interrupt_ctrl(1); 
 	}while(wr&&(pos!=wr));
 	
 }
@@ -273,10 +269,10 @@ void UART_TX_BYTE(int id)
 	if(g_uart[id].tx_write_pos && 
 		(g_uart[id].tx_pos<g_uart[id].tx_write_pos))
 	{
-		HX_BRD_UART_TX_START_BYTE(id,g_uart[id].tx_buffer[g_uart[id].tx_pos]);
+		brd_uart_tx_start_byte(id,g_uart[id].tx_buffer[g_uart[id].tx_pos]);
 	}else{
 		g_uart[id].tx_write_pos = 0;
-		HX_BRD_UART_TX_END_SESSION(id);
+		brd_uart_tx_end_session(id);
 	}
 }
 #ifdef HX_DEBUG_SERIAL_OUTPUT
@@ -297,6 +293,11 @@ void hx_uart_send(int id, const char *data, int len)
 	#ifdef HX_DEBUG_SERIAL_OUTPUT
 	debug_serial_out(id,data,len);
 	#endif
+	
+	if(id==HX_DEBUG_PORT){
+		brd_dp_send(id,data,len);
+		return;
+	}
 	//check len big than buff
 	int n = len;
 	if(n==0){
@@ -309,7 +310,7 @@ void hx_uart_send(int id, const char *data, int len)
 		memcpy((void*)(g_uart[id].tx_buffer),data,g_uart[id].tx_buf_size);
 		g_uart[id].tx_write_pos = g_uart[id].tx_buf_size;
 		g_uart[id].tx_pos = 0;
-		HX_BRD_UART_TX_START_BYTE(id,g_uart[id].tx_buffer[0]);
+		brd_uart_tx_start_byte(id,g_uart[id].tx_buffer[0]);
 		n -= g_uart[id].tx_buf_size;
 	}
 	wait_last_trans_complete(id);
@@ -317,7 +318,7 @@ void hx_uart_send(int id, const char *data, int len)
 	memcpy((void*)(g_uart[id].tx_buffer),data,n);
 	g_uart[id].tx_write_pos = n;
 	g_uart[id].tx_pos = 0;
-	HX_BRD_UART_TX_START_BYTE(id,g_uart[id].tx_buffer[0]);
+	brd_uart_tx_start_byte(id,g_uart[id].tx_buffer[0]);
 /*	
 	const char *p = data;
 	int n = len;
@@ -371,7 +372,7 @@ int hx_uart_printf(int port_nr, const char *format, ...)
 	hx_uart_send(port_nr,NULL,0);
 	return res;
 }
-int hx_uart_init(int port_nr, int bps)
+int hx_uart_init(int port_nr, int bps, int pclk)
 {
-	return HX_BRD_UART_REOPEN(port_nr,bps);
+	return brd_uart_reopen(port_nr,bps,pclk);
 }

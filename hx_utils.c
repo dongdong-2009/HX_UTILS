@@ -1,18 +1,16 @@
 #include "hx_utils.h"
+#include "hx_board.h"
 #include "string.h"
-#include "hx_def.h"
+#include "stdio.h"
 
-
-static volatile uint32_t g_timer_tickcount = 0;
-
-void TICK_COUNT_INC(int n)
+void hx_init_tickcount(int pclk)
 {
-	g_timer_tickcount += n;
+	cpu_init_tickcount_1m_by_pclk(pclk);
 }
 
 uint32_t hx_get_tick_count(void)
 {
-	return g_timer_tickcount;
+	return cpu_get_tickcount();
 }
 
 int bcd2int(unsigned char bcd)
@@ -472,16 +470,16 @@ int hx_check_timeout(int last,uint32_t timeout)
     return -1;
 }
 
-byte make_bcc(byte init, const void *data, int len)
+unsigned char make_bcc(unsigned char init, const void *data, int len)
 {
-	byte res = init;
-	const byte *p = (const byte*)data;
+	unsigned char res = init;
+	const unsigned char *p = (const unsigned char*)data;
 	for(int i=0;i<len;i++){
 		res ^= p[i];
 	}
 	return res;
 }
-byte make_bcc2(const void *data, int len)
+unsigned char make_bcc2(const void *data, int len)
 {
 	return make_bcc(0,data,len);
 }

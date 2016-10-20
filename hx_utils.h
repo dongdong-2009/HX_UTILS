@@ -11,7 +11,6 @@
 #include "hx_def.h"
 
 #include "int.h"
-#include "hx_target.h"
 
 #include "hx_term.h"
 #include "hx_serial.h"
@@ -36,7 +35,7 @@
 	for((pointer)=(array);(pointer)-(array)<(count);(pointer)++)
 
 extern uint32_t hx_get_tick_count(void);
-extern void hx_tick_count_init(void);
+extern void hx_init_tickcount(int pclk);
 
 extern int hx_delay_ms(int ms);
 extern int hx_check_timeout3(int *tlist, int tid, uint32_t timeout);
@@ -96,108 +95,14 @@ extern void HX_LSB_QW2B(uint64_t v,uint8_t *p);
 	"msb 2/4/8"
 	"lsb 2/4/8"
 */
-extern int hx_value2str(
-	const void *value,
-	const char *format,
-	char *sres);
-extern int hx_str2value(
-	char *str, 
-	const char *format, 
-	void *value);
+extern int hx_str2value(const char *s, const char *value_type, void *vres);
+extern int hx_value2str(const void* value,const char *format,
+                 char *sres);
 	
-extern byte make_bcc(byte init, const void *data, int len);
-extern byte make_bcc2(const void *data, int len);
+extern unsigned char make_bcc(unsigned char init, const void *data, int len);
+extern unsigned char make_bcc2(const void *data, int len);
 	
-	
-//==========================================================
-//Debug info for packet add/get
-#define PK_SHOW_TAB_SIZE			(8)
-#define PK_SHOW_NAME_LEN			(PK_SHOW_TAB_SIZE*6)
-#define  HX_DBG_PRINT(...)       fprintf((FILE*)'g',__VA_ARGS__)
-#define PK_DEBUG_FILL(p,n,x)	\
-{\
-	const char *name = #x;\
-	int len = strlen(name);\
-	len = PK_SHOW_NAME_LEN - len;\
-	HX_DBG_PRINT("\t%s",name);\
-	for(int i=0;i<len;i+=PK_SHOW_TAB_SIZE)\
-		HX_DBG_PRINT("\t");\
-	HX_DBG_PRINT("%d\t ",(int)(n));\
-	HX_DBG_PRINT("{%02X}",(int)(x));\
-	HX_DBG_PRINT("\r\n");\
-}
-#define PK_DEBUG_ARRAY(p,n,x)	\
-{\
-	const char *name = #x;\
-	int len = strlen(name);\
-	len = PK_SHOW_NAME_LEN - len;\
-	HX_DBG_PRINT("\t%s",name);\
-	for(int i=0;i<len;i+=PK_SHOW_TAB_SIZE)\
-		HX_DBG_PRINT("\t");\
-	HX_DBG_PRINT("%d\t ",(int)(n));\
-	for(int i=0;i<n;i++){\
-		HX_DBG_PRINT("%02X",(int)(((char*)(x))[i]));\
-	}\
-	HX_DBG_PRINT("\r\n");\
-}
-#define PK_DEBUG_BYTE(p,x)	\
-{\
-	const char *name = #x;\
-	int len = strlen(name);\
-	len = PK_SHOW_NAME_LEN - len;\
-	HX_DBG_PRINT("\t%s",name);\
-	for(int i=0;i<len;i+=PK_SHOW_TAB_SIZE)\
-		HX_DBG_PRINT("\t");\
-	HX_DBG_PRINT("1\t %02X\r\n",(int)(x));\
-}
-#define PK_DEBUG_WORD(p,x)	\
-{\
-	const char *name = #x;\
-	int len = strlen(name);\
-	len = PK_SHOW_NAME_LEN - len;\
-	HX_DBG_PRINT("\t%s",name);\
-	for(int i=0;i<len;i+=PK_SHOW_TAB_SIZE)\
-		HX_DBG_PRINT("\t");\
-	HX_DBG_PRINT("2\t %04X\r\n",(int)(x));\
-}
-#define PK_DEBUG_DWORD(p,x)	\
-{\
-	const char *name = #x;\
-	int len = strlen(name);\
-	len = PK_SHOW_NAME_LEN - len;\
-	HX_DBG_PRINT("\t%s",name);\
-	for(int i=0;i<len;i+=PK_SHOW_TAB_SIZE)\
-		HX_DBG_PRINT("\t");\
-	HX_DBG_PRINT("4\t %08X\r\n",(int)(x));\
-}
 
-#define PK_ADD_ARRAY(p,n,x)	\
-{\
-	p = pk_add((p), (n), (x));	\
-	PK_DEBUG_ARRAY((p),(n),(x));	\
-}	
-#define PK_FILL(p,n,x)	\
-{\
-	p = pk_fill((p), (n), (x));	\
-	PK_DEBUG_FILL((p),(n),(x));	\
-}	
-#define PK_ADD_BYTE(p,x)	\
-{\
-	*p++ = (x); \
-	PK_DEBUG_BYTE((p),(x));	\
-}	
-#define PK_ADD_WORD(p,x)	\
-{\
-	HX_MSB_W2B(x,(p)); \
-	p += 2; \
-	PK_DEBUG_WORD((p),(x));	\
-}	
-#define PK_ADD_DWORD(p,x)	\
-{\
-	HX_MSB_DW2B((x),(p)); \
-	p += 4; \
-	PK_DEBUG_DWORD((p),(x));	\
-}	
 void* pk_fill(void *to, int len, int d);
 void* pk_add(void *to, int len, const void *from);
 void* pk_get(void*from,int len,void* to);

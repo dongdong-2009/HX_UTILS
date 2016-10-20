@@ -5,12 +5,11 @@
  *      Author: houxd
  */
 
-#include "hx_term.h"
+#include "hx_utils.h"
+#include "hx_board.h"
 #include "stdio.h"
 #include "string.h"
 #include "stdarg.h"
-#include "hx_utils.h"
-#include "hx_debug.h"
 
 
 #define HXT_TRIM_CHAR_LIST		" \r\n\t"

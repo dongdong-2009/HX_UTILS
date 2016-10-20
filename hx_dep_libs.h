@@ -1,7 +1,6 @@
 #ifndef HX_DEP_LIBS_H
 #define HX_DEP_LIBS_H
 
-#include "hx_target.h"
 
 #ifdef HX_LIB_DS_RTC2TIME
 #include "time.h"

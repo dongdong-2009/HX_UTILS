@@ -37,6 +37,8 @@ int GetProcessCount(const TCHAR* szExeName)
 	return count;
 }
 
+
+
 void (*JLINKARM_Open)(void);
 void(*JLINKARM_Close)(void);
 bool (*JLINKARM_IsOpen)(void);
@@ -105,22 +107,12 @@ DWORD WINAPI ThreadFun(LPVOID pM)
 {
 	UINT32 res;
 	while (1) {
-		do {
-			unsigned char c;
-			res = fread(&c, 1, 1, stdin);
-			if (res == 1) {
-				//UINT32 c = getc(stdin);// getchar();	//getch(); no echo
-				UINT32 data = c;
-				while (in_api);
-				in_api = 1;
-				res = JLINKARM_WriteDCC(&data, 1, 50);
-				in_api = 0;
-			}
-			else 
-			{
-				res = -1;
-			}
-		} while (res == 0);
+		unsigned char c = _getch();
+		UINT32 data = 0x55000000u | c;
+		while (in_api);
+		in_api = 1;
+		JLINKARM_WriteDCC(&data, 1, 100);
+		in_api = 0;
 	}
 }
 int main()
@@ -166,19 +158,20 @@ int main()
 		//JLINKARM_Close();
 		UINT32 buf[1024];
 		while (1) {
+			//while (in_api);
+			//in_api = 1;
+			//JLINKARM_WaitDCCRead(10000000);
+			//in_api = 0;
 
-			//GetProcessCount()
-			//while (JLINKARM_IsOpen());
-			//JLINKARM_Open();
 			while (in_api);
 			in_api = 1;
 			res = JLINKARM_ReadDCC(buf, 1024, 2);
 			in_api = 0;
-			//JLINKARM_Close();
 			if (res) {
-				//printf("get dcc size=%d, data=%08X\r\n",res,buf[0]);
 				for (int i = 0; i < res; i++) {
 					UINT32 data = buf[i];
+					if ((data>>24) != 0x54)
+						continue;
 					int ch = (data >> 8) & 0xFFu;
 					int chbak = change_ch(ch);
 					int c = data & 0xFFu;
@@ -188,13 +181,10 @@ int main()
 					change_ch(chbak);
 				}
 			}
-			//if (_kbhit()) {
-			//	UINT32 res = getchar();// getchar();	//getch(); no echo
-			//	res = JLINKARM_WriteDCC(&res, 1, 50);
-			//	if (res == 1) {
-			//		
-			//	}
-			//}
+			else 
+			{
+				Sleep(2);
+			}
 
 		}
 

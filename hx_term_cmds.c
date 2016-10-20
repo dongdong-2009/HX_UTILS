@@ -5,12 +5,11 @@
  *      Author: houxd
  */
 
+#include "hx_utils.h"
+#include "hx_board.h"
 #include "stdio.h"
 #include "string.h"
-#include "hx_term.h"
-#include "hx_serial.h"
-#include "hx_utils.h"
-#include "hx_debug.h"
+#include "target.h"
 
 /*
 	Board Params need
@@ -332,219 +331,6 @@ int hxt_demo(int argc, char *argv[])
 	lsb 2/4/8
 */
 
-int hx_str2value(char *str, const char *value_type, void *vres)
-{
-	char fmt[10] = {0};
-	int count = -1;
-	char split_chars[5] = {0};
-	if(!str)
-		return -2;
-	int res = sscanf(value_type,"%s %d %s",fmt,&count,split_chars);
-	if(res<=0)
-		return -1;
-	if(strcmp(fmt,"bcd")==0 || strcmp(fmt,"bin")==0){
-		if(count<=0)
-			return -3;
-		hx_hexcode2bin(str,strlen(str),vres);
-		return 0;
-	}else if(strcmp(fmt,"asc")==0){
-		if(count<0)
-			return -3;
-		if(count>0)
-			memcpy(vres,str,count);
-		else
-			strcpy(vres,str);
-		return 0;
-	}else if(strcmp(fmt,"msb")==0){
-		uint64_t v;
-		sscanf(str,"%llu",&v);
-		if(count==2)
-			HX_MSB_W2B(v,vres);
-		else if(count==4)
-			HX_MSB_DW2B(v,vres);
-		else if(count==8)
-			HX_MSB_QW2B(v,vres);
-		else
-			return -3;
-		return 0;
-	}else if(strcmp(fmt,"lsb")==0){
-		uint64_t v;
-		sscanf(str,"%llu",&v);
-		if(count==2)
-			HX_LSB_W2B(v,vres);
-		else if(count==4)
-			HX_LSB_DW2B(v,vres);
-		else if(count==8)
-			HX_LSB_QW2B(v,vres);
-		else
-			return -3;
-		return 0;
-	}else if(fmt[0]=='%'){
-		//use printf/scan format
-		if(res==1){
-			count = 1;
-			split_chars[0] = 0;
-			//sscanf(str,fmt,vres);
-		}else if(res >= 2){
-			if(count<=0)
-				return -3;
-			if(count==1)	//count ==1, no need split char
-				split_chars[0] = 0;
-			else if(split_chars[0]==0){
-				//array big than 0, neet split char, default is '.'
-				strcpy(split_chars,".");
-			}
-		}else{
-			return -5;
-		}
-		int size = 0;
-		if((strcmp(fmt,"%s")==0))
-			size = 0;
-		else if(strstr(fmt,"d")||strstr(fmt,"i")||strstr(fmt,"u")){
-			if(strstr(fmt,"hh"))
-				size = 1;
-			else if(strstr(fmt,"h"))
-				size = 2;
-			else if(strstr(fmt,"ll"))
-				size = 8;
-			else
-				size = 4;
-		}else{
-			//...
-		}
-		if(count>0){
-			char *cvres = vres;
-			char *p = strtok(str,split_chars);
-			int i = 0;
-			for(i=0;i<count-1;i++){
-				sscanf(p,fmt,cvres);
-				if(size==0){
-					int ll = strlen(cvres);
-					cvres[ll] = ' ';
-					cvres += ll+1;
-				}else{
-					cvres += size;
-				}
-				p = strtok(NULL,split_chars);
-			}
-			sscanf(p,fmt,cvres);
-		}else{
-			sscanf(str,fmt,vres);
-		}
-		return 0;
-		
-	}else{
-		return -9;
-	}
-}
-int hx_value2str(const void* value,const char *format,
-	char *sres)
-{
-	strcpy(sres,"error");
-	char fmt[10] = {0};
-	int count = -1;
-	char split_chars[5] = {0};
-	if(!value)
-		return -2;
-	int res = sscanf(format,"%s %d %s",fmt,&count,split_chars);
-	if(res<=0)
-		return -1;
-	if(strcmp(fmt,"bcd")==0||strcmp(fmt,"bin")==0){
-		if(count<=0)
-			return -3;
-		hx_dumphex2str(value,count,sres);
-		return 0;
-	}else if(strcmp(fmt,"asc")==0){
-		if(count<0)
-			count = 0;
-		if(count>0){
-			memcpy(sres,value,count);
-			sres[count] = 0;
-		}else
-			strcpy(sres,value);
-		return 0;
-	}else if(strcmp(fmt,"msb")==0){
-		uint64_t v;
-		if(count==2)
-			v = HX_MSB_B2W(value);
-		else if(count==4)
-			v = HX_MSB_B2DW(value);
-		else if(count==8)
-			v = HX_MSB_B2QW(value);
-		else
-			return -3;
-		sprintf(sres,"%llu",v);
-		return 0;
-	}else if(strcmp(fmt,"lsb")==0){
-		uint64_t v;
-		if(count==2)
-			v = HX_LSB_B2W(value);
-		else if(count==4)
-			v = HX_LSB_B2DW(value);
-		else if(count==8)
-			v = HX_LSB_B2QW(value);
-		else
-			return -3;
-		sprintf(sres,"%llu",v);
-		return 0;
-	}else if(fmt[0]=='%'){
-		//use printf/scan format
-		if(res==1){
-			count = 1;
-			split_chars[0] = 0;
-			//sprintf(sres,fmt,*(uint32_t*)value);
-		}else if(res >= 2){
-			if(count<=0)
-				return -3;
-			if(count==1)	//count ==1, no need split char
-				split_chars[0] = 0;
-			else if(split_chars[0]==0){
-				//array big than 0, neet split char, default is '.'
-				strcpy(split_chars,".");
-			}
-		}else{
-			return -5;
-		}
-		int size = 0;
-		if((strcmp(fmt,"%s")==0))
-			size = 0;
-		else if(strstr(fmt,"d")||strstr(fmt,"i")||strstr(fmt,"u")){
-			if(strstr(fmt,"hh"))
-				size = 1;
-			else if(strstr(fmt,"h"))
-				size = 2;
-			else if(strstr(fmt,"ll"))
-				size = 8;
-			else
-				size = 4;
-		}else{
-			//...
-		}
-		char *p = sres;
-		const void *v = value;
-		for(int i=0;i<count;i++){
-			if(size==0)
-				p += sprintf(p,fmt,v);
-			else if(size==1)
-				p += sprintf(p,fmt,*(uint8_t*)v);
-			else if(size==2)
-				p += sprintf(p,fmt,*(uint16_t*)v);
-			else if(size==4)
-				p += sprintf(p,fmt,*(uint32_t*)v);
-			else if(size==4)
-				p += sprintf(p,fmt,*(uint64_t*)v);
-			else
-				return -3;
-			if(i<count-1)
-				p += sprintf(p,split_chars);
-			
-			v = (char*)v + size;
-		}
-		return 0;
-	}else{
-		return -9;
-	}
-}
 HXT_DEF_PROC(param)
 {
 	int res;
@@ -614,7 +400,7 @@ HXT_DEF_PROC(devcfg)
 		int bps;
 		res = sscanf(uart_param,"%d,%*s",&bps);
 		if(res == 1){
-			hx_uart_init(uart_id,bps);
+			hx_uart_init(uart_id,bps,Fpclk);
 		}
 	}
 	return 0;
