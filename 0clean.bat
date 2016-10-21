@@ -12,6 +12,7 @@ set RM=linux_tools\rm -rf
 %RM% fix_name_v2\Debug
 %RM% fix_name_v2\fix_name\Debug
 
+%RM% jlink_dcc_view\*.db
 %RM% jlink_dcc_view\Debug\*
 %RM% jlink_dcc_view\jlink_dcc\Debug\*
 
@@ -20,7 +21,6 @@ set RM=linux_tools\rm -rf
 %RM% wcdma_m_emu/out/Log*
 %RM% wcdma_m_emu/out/*.txt
 %RM% wcdma_m_emu/out/*.lib
-%RM% wcdma_m_emu/out/*.exe
 %RM% wcdma_m_emu/out/*.pdb
 %RM% wcdma_m_emu/out/*.exp
 
