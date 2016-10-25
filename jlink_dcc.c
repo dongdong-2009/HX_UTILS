@@ -4,6 +4,16 @@
 #include <rt_sys.h>
 #include <stdlib.h>
 
+#ifdef __DEBUG__
+#define __DCC_ENABLE_RETARGET__
+#endif
+
+#ifdef __DEBUG__
+//#define	printf(...)		do{printf(__VA_ARGS__);flush();}while(0)
+#else
+#define	printf(fmt,...)	
+#endif
+
 #if 0
 int main(void)
 {
@@ -16,141 +26,6 @@ int main(void)
 }
 #endif
 
-#ifdef __DEBUG__
-#define	printf(...)		do{printf(__VA_ARGS__);flush();}while(0)
-#else
-#define	printf(fmt,...)	
-#endif
-
-#ifdef __DEBUG__
-#define __DCC_ENABLE_RETARGET__
-#endif
-static void _flush(void);
-const char *dumphex(const void *hex, int len, char *buff);
-static void jlink_dcc_putc(int ch, int d);
-static int dcc_recv(int *d);
-//=============================================================
-static void jlink_osterm_send(const char *s, int len);
-#ifdef __DCC_ENABLE_RETARGET__
-
-//#pragma import(__use_no_semihosting_swi)
-
-struct __FILE {
-    int handle; /* Add whatever you need here */
-};
-FILE __stdout;
-FILE __stdin;
-FILE __stderr;
-
-#define PUT_BUF_SIZE		(64)
-static char buff[PUT_BUF_SIZE];
-static int pos = 0;
-void flush(void)
-{
-	if(pos==0)
-		return;
-    jlink_osterm_send(buff,pos);
-    pos = 0;
-}
-int _fputc(int c, FILE *f) {
-	int ch = (int)f;
-	if(f==&__stdin) ch='g';	//blue
-	if(f==&__stdout) ch='w';	//white
-	if(f==&__stderr) ch='r';	//red
-	c = (c&0xFFu)|((ch&0xFFu)<<8);
-	jlink_dcc_putc(0,c);
-	return c;
-	
-//	if(pos>=PUT_BUF_SIZE){
-//		flush();
-//	}
-//    buff[pos] = c;
-//    pos++;
-//    return c;
-	
-//	jlink_osterm_send_char(c);
-//	return c;
-}
-int fputc(int c, FILE *f){
-//	if(c == '\t'){
-//		_fputc(' ',f);
-//		_fputc(' ',f);
-//		_fputc(' ',f);
-//		return _fputc(' ',f);
-//	}else 
-//	
-	if(c == '\n'){
-		_fputc('\r',f);
-		return _fputc('\n',f);
-	}else{
-		return _fputc(c,f);
-	}
-}
-#else
-void flush(void){}
-int fputc(int c, FILE *f){(void)c;(void)f;return c;}	
-#endif
-
-
-int fgetc_noblock(FILE *f) {
-	(void)f;
-	int res;
-	int c;
-	res = dcc_recv(&c);
-	if(res)
-		return 0xffu & c;
-    return EOF;
-}
-int fgetc_block(FILE *f) {
-	int res;
-	do{
-		res = fgetc_noblock(f);
-	}while(res == EOF);
-	return res;
-}
-int fgetc(FILE *f) {
-	return fgetc_noblock(f);
-}
-
-
-int fclose(FILE* f) {
-    return (0);
-}
-
-
-int fseek (FILE *f, long nPos, int nMode)  {
-    return (0);
-}
-
-
-int fflush (FILE *f)  {
-    return (0);
-}
-
-int ferror(FILE *f) {
-    /* Your implementation of ferror */
-    return (EOF);
-}
-//void _sys_exit(int error){(void)error;for(;;);}
-
-const char *dumphex(const void *hex, int len, char *buff)
-{
-	int i;
-	unsigned int tmp;
-    const unsigned char *_hex = (const unsigned char*)hex;
-    unsigned char *_asc = (unsigned char*)buff;
-    for( i=0; i<len; i++)
-    {
-        tmp = (0xFu&(_hex[i]>>4));
-        _asc[(i<<1)] = (unsigned char) (tmp<0xA?tmp+'0':tmp+'A'-0xA);
-        tmp = (0xFu&(_hex[i]>>0));
-        _asc[(i<<1)+1] = (unsigned char) (tmp<0xA?tmp+'0':tmp+'A'-0xA);
-    }
-	buff[len<<1] = 0;
-	return buff;
-}
-
-//===============================================
 
 #ifndef uint
 #define byte	unsigned char
@@ -363,6 +238,56 @@ static OS_INTERWORK OS_ARM_FUNC void _WriteDCC(uint Data) {
 #endif
 #endif
 }
+
+//static void jlink_dcc_putc(int ch, int d) {
+//    uint packet;
+//    uint busy;
+//    packet = 0x93800000 | (ch << 16);
+//    packet |= d;
+//    do {
+//        busy = _ReadDCCStat();
+//    } while((busy & 2u));
+//    _WriteDCC(packet);
+//}
+//static void jlink_osterm_send_char(int c)
+//{
+////    int i;
+//    unsigned int sum = 2;
+//    jlink_dcc_putc(DCC_CHANNEL_OS, 0x8C);
+//    jlink_dcc_putc(DCC_CHANNEL_OS, 0xED);
+//    jlink_dcc_putc(DCC_CHANNEL_OS, 2);
+//    jlink_dcc_putc(DCC_CHANNEL_OS, 'C');
+//    sum += 'C';
+//    sum += c;
+//    jlink_dcc_putc(DCC_CHANNEL_OS,c);
+//    jlink_dcc_putc(DCC_CHANNEL_OS,0xFFu & sum);
+//    jlink_dcc_putc(DCC_CHANNEL_OS,0x8D);
+//}
+//static void jlink_osterm_send(const char *s, int len)
+//{
+//    int i;
+//    unsigned int sum = len+1;
+//    jlink_dcc_putc(DCC_CHANNEL_OS, 0x8C);
+//    jlink_dcc_putc(DCC_CHANNEL_OS, 0xED);
+//    jlink_dcc_putc(DCC_CHANNEL_OS, len+1);
+//    jlink_dcc_putc(DCC_CHANNEL_OS, 'C');
+//    sum += 'C';
+//    for(i=0; i<len; i++) {
+//        sum += s[i];
+//        jlink_dcc_putc(DCC_CHANNEL_OS,s[i]);
+//    }
+//    jlink_dcc_putc(DCC_CHANNEL_OS,0xFFu & sum);
+//    jlink_dcc_putc(DCC_CHANNEL_OS,0x8D);
+//}
+//void jlink_osterm_put(const char *s)
+//{
+//    jlink_osterm_send(s,strlen(s));
+//}
+//void jlink_osterm_puts(const char *s)
+//{
+//    jlink_osterm_put(s);
+//    jlink_osterm_put("\n");
+//}
 static void jlink_dcc_putc(int ch, int d) {
     uint packet;
     uint busy;
@@ -374,57 +299,7 @@ static void jlink_dcc_putc(int ch, int d) {
     } while((busy & 2u));
     _WriteDCC(packet);
 }
-//static void jlink_dcc_putc(int ch, int d) {
-//    uint packet;
-//    uint busy;
-//    packet = 0x93800000 | (ch << 16);
-//    packet |= d;
-//    do {
-//        busy = _ReadDCCStat();
-//    } while((busy & 2u));
-//    _WriteDCC(packet);
-//}
-static void jlink_osterm_send_char(int c)
-{
-//    int i;
-    unsigned int sum = 2;
-    jlink_dcc_putc(DCC_CHANNEL_OS, 0x8C);
-    jlink_dcc_putc(DCC_CHANNEL_OS, 0xED);
-    jlink_dcc_putc(DCC_CHANNEL_OS, 2);
-    jlink_dcc_putc(DCC_CHANNEL_OS, 'C');
-    sum += 'C';
-    sum += c;
-    jlink_dcc_putc(DCC_CHANNEL_OS,c);
-    jlink_dcc_putc(DCC_CHANNEL_OS,0xFFu & sum);
-    jlink_dcc_putc(DCC_CHANNEL_OS,0x8D);
-}
-static void jlink_osterm_send(const char *s, int len)
-{
-    int i;
-    unsigned int sum = len+1;
-    jlink_dcc_putc(DCC_CHANNEL_OS, 0x8C);
-    jlink_dcc_putc(DCC_CHANNEL_OS, 0xED);
-    jlink_dcc_putc(DCC_CHANNEL_OS, len+1);
-    jlink_dcc_putc(DCC_CHANNEL_OS, 'C');
-    sum += 'C';
-    for(i=0; i<len; i++) {
-        sum += s[i];
-        jlink_dcc_putc(DCC_CHANNEL_OS,s[i]);
-    }
-    jlink_dcc_putc(DCC_CHANNEL_OS,0xFFu & sum);
-    jlink_dcc_putc(DCC_CHANNEL_OS,0x8D);
-}
-//void jlink_osterm_put(const char *s)
-//{
-//    jlink_osterm_send(s,strlen(s));
-//}
-//void jlink_osterm_puts(const char *s)
-//{
-//    jlink_osterm_put(s);
-//    jlink_osterm_put("\n");
-//}
-
-static int dcc_recv(int *d)
+static int jlink_dcc_getc(int *d)
 {
   uint Data;
 
@@ -438,3 +313,83 @@ static int dcc_recv(int *d)
   }
   return 0;
 }
+//==================================================
+struct __FILE {
+    int handle; /* Add whatever you need here */
+};
+FILE __stdout;
+FILE __stdin;
+FILE __stderr;
+int fclose(FILE* f) {
+    return (0);
+}
+int fseek (FILE *f, long nPos, int nMode)  {
+    return (0);
+}
+int fflush (FILE *f)  {
+    return (0);
+}
+int ferror(FILE *f) {
+    return (EOF);
+}
+
+#ifdef __DCC_ENABLE_RETARGET__
+//#pragma import(__use_no_semihosting_swi)
+int fgetc_noblock(FILE *f) {
+	(void)f;
+	int res;
+	int c;
+	res = jlink_dcc_getc(&c);
+	if(res)
+		return 0xffu & c;
+    return EOF;
+}
+int fgetc_block(FILE *f) {
+	int res;
+	do{
+		res = fgetc_noblock(f);
+	}while(res == EOF);
+	return res;
+}
+int fgetc(FILE *f) {
+	return fgetc_noblock(f);
+}
+int _fputc(int c, FILE *f) {
+	int ch = (int)f;
+	if(f==&__stdin) ch='g';	//blue
+	if(f==&__stdout) ch='w';	//white
+	if(f==&__stderr) ch='r';	//red
+	c = (c&0xFFu)|((ch&0xFFu)<<8);
+	jlink_dcc_putc(0,c);
+	return c;
+	
+//	if(pos>=PUT_BUF_SIZE){
+//		flush();
+//	}
+//    buff[pos] = c;
+//    pos++;
+//    return c;
+	
+//	jlink_osterm_send_char(c);
+//	return c;
+}
+int fputc(int c, FILE *f){
+//	if(c == '\t'){
+//		_fputc(' ',f);
+//		_fputc(' ',f);
+//		_fputc(' ',f);
+//		return _fputc(' ',f);
+//	}else 
+//	
+	if(c == '\n'){
+		_fputc('\r',f);
+		return _fputc('\n',f);
+	}else{
+		return _fputc(c,f);
+	}
+}
+
+#else
+int fgetc(FILE *f){(void*)f;return EOF;}
+int fputc(int c, FILE *f){(void)c;(void)f;return c;}	
+#endif

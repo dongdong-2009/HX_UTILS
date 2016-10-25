@@ -5,39 +5,8 @@
 #include <windows.h>
 #include <typeinfo>
 #include <conio.h>
-
 #include "tlhelp32.h" 
-
-int GetProcessCount(const TCHAR* szExeName)
-{
-	TCHAR sztarget[MAX_PATH];
-	lstrcpy(sztarget, szExeName);
-	CharLowerBuff(sztarget, MAX_PATH);
-
-	int count = 0;
-	PROCESSENTRY32 my;
-	HANDLE l = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (((int)l) != -1)
-	{
-		my.dwSize = sizeof(my);
-		if (Process32First(l, &my))
-		{
-			do
-			{
-				CharLowerBuff(my.szExeFile, MAX_PATH);
-				if (lstrcmp(sztarget, my.szExeFile) == 0)
-				{
-					count++;
-				}
-			} while (Process32Next(l, &my));
-		}
-		CloseHandle(l);
-	}
-
-	return count;
-}
-
-
+#include<signal.h>
 
 void (*JLINKARM_Open)(void);
 void(*JLINKARM_Close)(void);
@@ -51,6 +20,7 @@ UINT32 (*JLINKARM_WriteDCC)(const UINT32 *buf, UINT32 size, INT timeout);
 UINT32 (*JLINKARM_ReadDCCFast)(UINT32 *buf, UINT32 size, INT timeout);
 UINT32 (*JLINKARM_WriteDCCFast)(const UINT32 *buf, UINT32 size, INT timeout);
 UINT32 (*JLINKARM_WaitDCCRead)(UINT32 timeout);
+void (*JLINKARM_SetSpeed)(UINT32 spd);
 /*
 FOREGROUND_BLUE 前景色为蓝
 FOREGROUND_GREEN 前景色为绿
@@ -117,7 +87,7 @@ DWORD WINAPI ThreadFun(LPVOID pM)
 }
 int main()
 {
-	printf("jlink_dcc_view_V0.1 by houxd ,build %s %s\r\n",__DATE__,__TIME__);
+	printf("jlink_dcc_view_V0.2 by houxd ,build %s %s\r\n",__DATE__,__TIME__);
 	int res;
 	HINSTANCE lib = LoadLibrary("JLinkARM.dll");
 	if (lib == NULL) {
@@ -139,12 +109,17 @@ int main()
 	JLINKARM_ReadDCCFast = (UINT32(*)(UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_ReadDCCFast");
 	JLINKARM_WriteDCCFast = (UINT32(*)(const UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_WriteDCCFast");
 	JLINKARM_WaitDCCRead = (UINT32(*)(UINT32))GetProcAddress(lib, "JLINKARM_WaitDCCRead");
+	JLINKARM_SetSpeed = (void (*)(UINT32))GetProcAddress(lib, "JLINKARM_SetSpeed");
+
+	signal(SIGINT, 0);
+
 	printf("Open JLink ... ");
 
 	JLINKARM_Open();
 	if (JLINKARM_IsOpen())
 	{
 		printf("OK\r\n");
+		JLINKARM_SetSpeed(200);
 
 		printf("JLink Info:\r\n");
 		printf("SN=%08u\r\n", JLINKARM_GetSN());
@@ -152,20 +127,13 @@ int main()
 		printf("VER=%u\r\n", JLINKARM_GetDLLVersion());
 		printf("Speed=%u\r\n", JLINKARM_GetSpeed());
 		printf("=============================================================\r\n");
-		printf("Jlink DCC View Ver0.1, Build %s %s\r\n", __DATE__, __TIME__);
 
 		HANDLE handle = CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);
-		//JLINKARM_Close();
-		UINT32 buf[1024];
+		UINT32 buf[256];
 		while (1) {
-			//while (in_api);
-			//in_api = 1;
-			//JLINKARM_WaitDCCRead(10000000);
-			//in_api = 0;
-
 			while (in_api);
 			in_api = 1;
-			res = JLINKARM_ReadDCC(buf, 1024, 2);
+			res = JLINKARM_ReadDCC(buf, 256, 2);
 			in_api = 0;
 			if (res) {
 				for (int i = 0; i < res; i++) {
@@ -181,17 +149,12 @@ int main()
 					change_ch(chbak);
 				}
 			}
-			else 
-			{
-				Sleep(2);
-			}
-
+			Sleep(10);
 		}
 
 		WaitForSingleObject(handle, INFINITE);
-
+		JLINKARM_Close();
 	}
-	//getchar();
-	//JLINKARM_Close();
+
 	return 0;
 }

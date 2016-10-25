@@ -15,6 +15,9 @@ set RM=linux_tools\rm -rf
 %RM% jlink_dcc_view\*.db
 %RM% jlink_dcc_view\Debug\*
 %RM% jlink_dcc_view\jlink_dcc\Debug\*
+%RM% jlink_dcc_view\Release\*.iobj
+%RM% jlink_dcc_view\Release\*.ipdb
+%RM% jlink_dcc_view\Release\*.pdb
 
 %RM% wcdma_m_emu/ipch
 %RM% wcdma_m_emu/*.db

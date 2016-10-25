@@ -123,7 +123,7 @@ static int check_netopen(
 
 const struct ATCMD_T sim7100c_at_tbl[] = {
 	//cmd					res			timeout		trytimes	check_res_proc
-	{"AT",					"AT",		2000,		20, 		0},
+	{"ATE1",				"OK",		2000,		20, 		0},
 	{"ATE0",				"OK",		2000,		20, 		0},
 	{"AT+CSQ",				NULL,		2000,		20, 		check_csq},
 	{"AT+CGDCONT=1,\"IP\",\"apn\"",		
