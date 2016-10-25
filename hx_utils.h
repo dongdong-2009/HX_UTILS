@@ -16,9 +16,10 @@
 #include "hx_serial.h"
 #include "hx_atcmd.h"
 #include "hx_debug.h"
-
-#include "hx_dep_libs.h"
 #include "hx_ver_def.h"
+
+extern void hx_utils_init(int pclk);
+extern uint32_t hx_get_gpclk(void);
 
 #define hx_do_timeout(tm_in_ms)						\
 	for(int __t__ = hx_get_tick_count() + tm_in_ms;	\

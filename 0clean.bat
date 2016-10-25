@@ -13,7 +13,8 @@ set RM=linux_tools\rm -rf
 %RM% fix_name_v2\fix_name\Debug
 
 %RM% jlink_dcc_view\*.db
-%RM% jlink_dcc_view\Debug\*
+%RM% jlink_dcc_view\Debug\*.ilk
+%RM% jlink_dcc_view\Debug\*.pdb
 %RM% jlink_dcc_view\jlink_dcc\Debug\*
 %RM% jlink_dcc_view\Release\*.iobj
 %RM% jlink_dcc_view\Release\*.ipdb

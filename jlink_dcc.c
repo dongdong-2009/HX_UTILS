@@ -291,9 +291,8 @@ static OS_INTERWORK OS_ARM_FUNC void _WriteDCC(uint Data) {
 static void jlink_dcc_putc(int ch, int d) {
     uint packet;
     uint busy;
-	//54<color16><d8>
-    packet = 0x54000000 | (ch << 16);
-    packet |= (d&0xFFu);
+	//54 <reverse> <color8> <d8>
+    packet = 0x54000000 | ((ch&0xFFu) << 8) | (d&0xFFu);
     do {
         busy = _ReadDCCStat();
     } while((busy & 2u));
@@ -356,11 +355,10 @@ int fgetc(FILE *f) {
 }
 int _fputc(int c, FILE *f) {
 	int ch = (int)f;
-	if(f==&__stdin) ch='g';	//blue
+	if(f==&__stdin) ch='g';		//green
 	if(f==&__stdout) ch='w';	//white
 	if(f==&__stderr) ch='r';	//red
-	c = (c&0xFFu)|((ch&0xFFu)<<8);
-	jlink_dcc_putc(0,c);
+	jlink_dcc_putc(ch,c);
 	return c;
 	
 //	if(pos>=PUT_BUF_SIZE){

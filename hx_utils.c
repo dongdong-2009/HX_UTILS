@@ -3,6 +3,18 @@
 #include "string.h"
 #include "stdio.h"
 
+uint32_t g_fpclk = 0;
+uint32_t hx_get_gpclk(void)
+{
+	return g_fpclk;
+}
+void hx_utils_init(int pclk)
+{
+	g_fpclk = pclk;
+	hx_init_tickcount(g_fpclk);	
+	hxt_term_init();
+}
+
 void hx_init_tickcount(int pclk)
 {
 	cpu_init_tickcount_1m_by_pclk(pclk);

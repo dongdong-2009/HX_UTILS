@@ -9,7 +9,7 @@
 #include "hx_board.h"
 #include "stdio.h"
 #include "string.h"
-#include "target.h"
+
 
 /*
 	Board Params need
@@ -400,7 +400,7 @@ HXT_DEF_PROC(devcfg)
 		int bps;
 		res = sscanf(uart_param,"%d,%*s",&bps);
 		if(res == 1){
-			hx_uart_init(uart_id,bps,Fpclk);
+			hx_uart_init(uart_id,bps,hx_get_gpclk());
 		}
 	}
 	return 0;
