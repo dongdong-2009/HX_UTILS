@@ -33,7 +33,7 @@ static int check_connect(
 	return -1;
 }
 
-const struct ATCMD_T sim800c_at_tbl[] = {
+static const struct ATCMD_T at_tbl[] = {
 	//cmd					res			timeout		trytimes	check_res_proc
 	{"AT",					"AT",		2000,		20, 		0},
 	{"ATE0",				"OK",		2000,		20, 		0},
@@ -51,24 +51,6 @@ const struct ATCMD_T sim800c_at_tbl[] = {
 							NULL/*"CONNECT"*/,	30000,5, 		check_connect},
 };
 
-const int sim800c_step_count = sizeof(sim800c_at_tbl)/sizeof(sim800c_at_tbl[0]);
-
-//return 0 is connect ,others are not
-int sim800c_poll(void)
-{
-	char buf[4096];
-	int step = atc_sequence_poll(
-					sim800c_at_tbl,
-					sizeof(sim800c_at_tbl)/sizeof(sim800c_at_tbl[0]),
-					buf,
-					4096,
-					NULL);
-	if(step < sizeof(sim800c_at_tbl)/sizeof(sim800c_at_tbl[0])){
-		return -1;
-	}else{
-		return 0;
-	}
-}
 
 
 //#define GPRSBordPowerON     LPC_GPIO3->FIOSET|=(1<<25);
@@ -86,4 +68,19 @@ int sim800c_poll(void)
 //	  GPRSBordPowerON;//??
 //	  return 0;	
 //}
+
+static const HX_ATARG_T defarg = {
+	.rm_ip = "180.89.58.27",
+	.rm_port = 9020,
+	.apn = "cmnet",
+	.user = "",
+	.passwd = "",
+};
+
+const struct HX_NIC_T nic_sim800c = {
+	.default_arg = &defarg,
+	.at_tbl = at_tbl,
+	.at_tbl_count = sizeof(at_tbl)/sizeof(at_tbl[0]),
+	.init = atc_default_init,
+};
 

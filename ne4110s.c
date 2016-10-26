@@ -78,7 +78,7 @@ static int ne4110_enter_cmdmode(void)
 }
 
 
-int ne4110_reset(void)
+static int ne4110_reset(void)
 {
 	int res = ne4110_enter_cmdmode();
 	if(res)
@@ -108,10 +108,17 @@ int ne4110_reset(void)
 	ne4110_write_cmd("CF","5");	//Force Tx Timeout
 */
 
-struct NE4110_ST g_nic_info;
+
+//struct NE4110_CFG_ST
+//{
+//    int dhcp;
+//    char ip[16];
+//    char mask[16];
+//    char gw[16];
+//};
 
 //if param_file set NULL,that use deault.
-int ne4110_config(char *param_file)
+static int ne4110_config(char *param_file)
 {
 	int res;
 	char buff[100];
@@ -124,8 +131,8 @@ int ne4110_config(char *param_file)
 			return res;
 	}
 #define NE_DINFO(...)	HX_DBG_PRINTLN(__VA_ARGS__)	
-	struct NE4110_ST *ne_info = &g_nic_info;
-	if(ne_info) memset(ne_info, 0, sizeof(struct NE4110_ST));
+	HX_NIC_INFO_T *ne_info = &g_nic_info;
+	if(ne_info) memset(ne_info, 0, sizeof(HX_NIC_INFO_T));
 	NE_DINFO("SerialNumber:%s", ne4110_read_cmd("BS","",buff));
 	if(ne_info) strncpy(ne_info->sn,buff,9);
 	NE_DINFO("FirmwareVersion:%s", ne4110_read_cmd("BV","",buff));
@@ -182,41 +189,61 @@ int ne4110_config(char *param_file)
 	
 	return 0;
 }
-struct NE4110_CFG_ST g_ne4110_cfg = {
-	0,
-	{192,168,60,20},
-	{255,255,255,255},
-	{192,168,60,254},
+//struct NE4110_CFG_ST g_ne4110_cfg = {
+//	0,
+//	{192,168,60,20},
+//	{255,255,255,255},
+//	{192,168,60,254},
+//};
+
+static const HX_ATARG_T defarg = {
+	.rm_ip = "180.89.58.27",
+	.rm_port = 9020,
+	.lc_ip = "0.0.0.0",
+	.mask = "0.0.0.0",
+	.gateway = "0.0.0.0",
+	.dhcp_en = 1,
 };
-//#if HX_TARGET_BOARD == HX_DQ1300
-//#include "includes.h"
-//void ne4110_init(void)
-//{
-//	int res;
-//	char ne_params[256];
-//	char *p = ne_params;
-//	p += sprintf(p,
-//		"NC=%u"				// 0:static 1:dhcp
-//		"&NP=%s"	//ip
-//		"&NM=%s"	//mask
-//		"&NG=%s"	//gateway
-//		"&CA=180.89.58.27"	//rm ip
-//		"&C1=9020"			//rm port
-//	,ParamCardSt.g_ne4110_cfg.dhcp
-//	,ParamCardSt.g_ne4110_cfg.ip
-//	,ParamCardSt.g_ne4110_cfg.mask
-//	,ParamCardSt.g_ne4110_cfg.gw
-//	);
-//	do{
-//		res = ne4110_config(ne_params);
-//		if(res){
-//			HX_DBG_PRINTLN("NE4110S INIT Fail, Error Code(%d) . Retry in 3S.",res);
-//			return ;
-//		}
-//	}while(res);
-//	HX_DBG_PRINTLN("NE4110S INIT OK.");
-//}
-//#endif
+
+static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
+{
+	int res;
+	char ne_params[512];
+	char *p = ne_params;
+	p += sprintf(p,
+		"NC=%u"				// 0:static 1:dhcp
+		"&NP=%s"	//ip
+		"&NM=%s"	//mask
+		"&NG=%s"	//gateway
+		"&CA=180.89.58.27"	//rm ip
+		"&C1=9020"			//rm port
+	,this->default_arg->dhcp_en?1:0
+	,this->default_arg->lc_ip
+	,this->default_arg->mask
+	,this->default_arg->gateway
+	);
+	do{
+		res = ne4110_config(ne_params);
+		if(res){
+			HX_DBG_PRINTLN("NE4110S INIT Fail, Error Code(%d) . Retry in 3S.",res);
+			return -1;
+		}
+	}while(res);
+	HX_DBG_PRINTLN("NE4110S INIT OK.");
+	return 0;
+}
+
+
+static void _reset(const struct HX_NIC_T *this) 
+{
+	  ne4110_reset();
+}
+
+const struct HX_NIC_T nic_ne4110s = {
+	.default_arg = &defarg,
+	.init = _init,
+	.reset = _reset,
+};
 
 
 

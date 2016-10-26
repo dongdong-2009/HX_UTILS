@@ -71,7 +71,7 @@ static int rak415_enter_cmdmode(void)
 }
 
 // normal return <0 xdB , >=0 is not connect
-int rak415_rssi(void)
+static int rak415_rssi(void)
 {
 	int res = rak415_enter_cmdmode();
 	if(res)
@@ -106,7 +106,7 @@ end:
 	}
 	return ret;
 }
-int rak415_reset(void)
+static int rak415_reset(void)
 {
 	int res = rak415_enter_cmdmode();
 	if(res)
@@ -186,7 +186,7 @@ static const char *default_params =
 		;
 
 //if param_file set NULL,that use deault.
-int rak415_init(const char *param_file)
+static int rak415_init(const char *param_file)
 {
 	int res;
 	char buff[100];
@@ -227,4 +227,47 @@ next2:
 	
 	return 0;
 }
+
+static const HX_ATARG_T defarg = {
+	.rm_ip = "180.89.58.27",
+	.rm_port = 9020,
+	.w_ssid = "whyyy",
+	.w_passwd = "yy123456789",
+};
+
+static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
+{
+	const HX_ATARG_T *pa = (const HX_ATARG_T*)arg;
+	atc_default_init(this,pstep,arg);
+	char buff[512];
+	char *p = buff;
+	p += sprintf(
+		"sta_ssid=%s"
+		"&sta_psk=%s"
+		"&socketA_destport=%u"
+		"&socketA_destip=%s",
+		pa->w_ssid,pa->w_passwd,(unsigned)(pa->rm_port),pa->rm_ip);
+	rak415_init(default_params);
+	rak415_init(buff);
+	return 0;
+}
+
+static void _reset(const struct HX_NIC_T *this) 
+{
+	 rak415_reset();
+}
+
+static int _state(void)
+{
+	return rak415_rssi();
+}
+
+const struct HX_NIC_T nic_rak415 = {
+	.default_arg = &defarg,
+	.at_tbl = NULL,
+	.at_tbl_count = 0,
+	.init = _init,
+	.reset = _reset,
+	.state = _state,
+};
 

@@ -29,7 +29,7 @@ static int check_zipstat(
     return -1;
 }
 
-const struct ATCMD_T mg3732_at_tbl[] = {
+const struct ATCMD_T at_tbl[] = {
 	//cmd					res			timeout		trytimes	check_res_proc
 	{"AT",					"AT",		2000,		20, 		0},
 	{"ATE0",				"OK",		2000,		20, 		0},
@@ -52,24 +52,20 @@ const struct ATCMD_T mg3732_at_tbl[] = {
 //							NULL/*"CONNECT"*/,	30000,5, 		check_connect},
 };
 
-const int g_mg3732_step_count = sizeof(mg3732_at_tbl)/sizeof(mg3732_at_tbl[0]);
 
+static const HX_ATARG_T defarg = {
+	.rm_ip = "180.89.58.27",
+	.rm_port = 9020,
+	.apn = "cmnet",
+	.user = "",
+	.passwd = "",
+};
 
-//return 0 is connect ,others are not
-int mg3732_poll(void)
-{
-	char buf[4096];
-	int step = atc_sequence_poll(
-					mg3732_at_tbl,
-					sizeof(mg3732_at_tbl)/sizeof(mg3732_at_tbl[0]),
-					buf,
-					4096,
-					NULL);
-	if(step < sizeof(mg3732_at_tbl)/sizeof(mg3732_at_tbl[0])){
-		return step;
-	}else{
-		return -1;
-	}
-}
+const struct HX_NIC_T nic_mg3732 = {
+	.default_arg = &defarg,
+	.at_tbl = at_tbl,
+	.at_tbl_count = sizeof(at_tbl)/sizeof(at_tbl[0]),
+	.init = atc_default_init,
+};
 
 

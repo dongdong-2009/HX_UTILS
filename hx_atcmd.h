@@ -9,7 +9,63 @@
 #define __AT_PORT_H__
 
 #include "hx_serial.h"
+#include "int.h"
 
+#ifdef MULTY_NIC_CARD
+typedef struct __HX_ATARG_T {
+    char 	rm_ip[16]; 
+	uint16_t 	rm_port;
+	union {
+		struct __GPRS_WCDMA_ETC{
+			char apn[16];
+			char user[16];
+			char passwd[32];
+		};
+		struct __WIFI {
+			char w_ssid[32];
+			char w_passwd[32];
+			
+			struct __LAN {
+				char lc_ip[16];
+				char mask[16];
+				char gateway[16];
+				int dhcp_en;
+			}
+		}
+	}
+} HX_ATARG_T;
+
+typedef struct __HX_NIC_INFO {
+	char sn[10];
+	char firm_ver[10];
+	char module_name[20];
+	char mac[20];
+} HX_NIC_INFO_T;
+#else
+typedef struct __HX_ATARG_T {
+    char 	rm_ip[16]; 
+	uint16_t 	rm_port;
+	
+    char apn[16];
+    char user[16];
+    char passwd[32];
+
+    char w_ssid[32];
+    char w_passwd[32];
+
+    char lc_ip[16];
+    char mask[16];
+    char gateway[16];
+    int dhcp_en;
+} HX_ATARG_T;
+
+typedef struct __HX_NIC_INFO {
+	char sn[10];
+	char firm_ver[10];
+	char module_name[20];
+	char mac[20];
+} HX_NIC_INFO_T;
+#endif
 
 /*
 	usefor call back function, indicate a event.
@@ -17,13 +73,13 @@
 enum ATEVENT_T {AT_PUT,AT_GET};
 
 /*
-	define cmd list item struct 
+	define cmd list item struct
 	if cmd set NULL, this case will call callback fuction,
 		and send AT_PUT event.
 	if want_res set NULL, send AT_GET event.
 	callback :
 		step current step
-		event 
+		event
 		buf when event==AT_PUT,that use for return a cmd
 			when event==AT_GET,that use for get res of at revc.
 		msg use for user defined data struct . set NULL. if no use
@@ -31,43 +87,53 @@ enum ATEVENT_T {AT_PUT,AT_GET};
 */
 struct ATCMD_T
 {
-	const char *cmd;
-	const char *want_res;
-	int tmout_at_once;
-	int trytimes;
-	int (*callback)(
-		int step, 
-		enum ATEVENT_T event,
-		char *buf, 
-		void *msg);
+    const char *cmd;
+    const char *want_res;
+    int tmout_at_once;
+    int trytimes;
+    int (*callback)(
+        int step,
+        enum ATEVENT_T event,
+        char *buf,
+        void *msg);
 };
 
+struct HX_NIC_T
+{
+	const HX_ATARG_T *default_arg;
+	const struct ATCMD_T *at_tbl;
+	const int at_tbl_count;
+	int (*init)(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg);
+	void (*reset)(const struct HX_NIC_T *this);
+	int (*state)(void);
+};
 
+///=====================================
+// AT Inner APIs
+#define ATCMD_DELAY(ms)	 	{"DELAY",NULL,ms,-1,NULL,}
+extern 
+int atc_default_init(
+	const struct HX_NIC_T *this, 
+	int *pstep, 
+	HX_ATARG_T *arg
+);
+extern HX_NIC_INFO_T g_nic_info;
 
+///=====================================
+// AT Export APIs
 
 /*
 	arguements:
-	at_tbl : define at cmd list and operation functions
-	tbl_len : at cmd list size
-	buff: recv data save here
-	buff_size: buffer len ,max save chars
-	msg: user defined data struct ,  usefor describ mes info
+	nic	:	net card struct
+	pstep : instans of current step
+	msg : private data here
+	return : current step
 
 	return:
 	normal return number is the current step.
 	when all step continued , return sum of item of at_tbl.
 */
-extern int atc_sequence_poll(
-	const struct ATCMD_T *at_tbl, 
-	int tbl_len,
-	char *buff,
-	int buff_size,
-	void *msg
-);
-	
-extern int atc_set_step(int s);
-	
-#define ATCMD_DELAY(ms)	 	{"DELAY",NULL,ms,-1,NULL,}
+extern int atc_poll(const struct HX_NIC_T *nic, int *pstep, void *msg);
 
 extern int atc_getc_noblock(int *pc);
 extern int atc_getc_timeout(int *pc,int t);
@@ -83,50 +149,15 @@ extern void atc_puts(const  char *s);
 extern int atc_printf(const char *format, ...);
 
 
-//===============================================================
-//export at cmd drivers based on atcmd.c 
-//rak415.c
-//if param_file set NULL,that use deault.
-extern int rak415_init(const char *param_file);
-extern int rak415_reset(void);
-// normal return <=-1(dB) , >=0 is not connect
-extern int rak415_rssi(void);
+///=====================================
+/// NICs
+extern const struct HX_NIC_T nic_sim800c;
+extern const struct HX_NIC_T nic_sim7100c;
+extern const struct HX_NIC_T nic_me3630;
+extern const struct HX_NIC_T nic_mg3732;
+extern const struct HX_NIC_T nic_ne4110s;
+extern const struct HX_NIC_T nic_sim7600c;
 
-//sim800c.c
-//return 0 is connect ,others are not
-extern const struct ATCMD_T sim800c_at_tbl[];
-extern const int sim800c_step_count;
-extern int sim800c_poll(void);
-
-//sim7100c.c
-extern const struct ATCMD_T sim7100c_at_tbl[];
-extern const int sim7100c_step_count;
-extern int sim7100c_poll(void);
-
-//mg3732.c
-//return 0 is connect ,others are not
-extern const struct ATCMD_T mg3732_at_tbl[];
-extern const int g_mg3732_step_count;
-extern int mg3732_poll(void);
-
-//ne4110s.c
-struct NE4110_ST {
-	char sn[10];
-	char firm_ver[10];
-	char module_name[20];
-	char mac[20];
-};
-struct NE4110_CFG_ST
-{
-	int dhcp;
-	char ip[16];
-	char mask[16];
-	char gw[16];
-};
-extern struct NE4110_ST g_nic_info;
-extern void ne4110_init(void);
-extern int ne4110_config(char *param_file);
-extern int ne4110_reset(void);
 
 #endif
 

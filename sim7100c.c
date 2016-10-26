@@ -75,7 +75,7 @@ C:\Users\houxd>ping www.baidu.com
 
 */
 
-static int check_csq(
+static int on_csq(
 	int step, 
 	enum ATEVENT_T event,
 	char *buf, 
@@ -90,7 +90,7 @@ static int check_csq(
 	}
 	return -1;
 }
-static int check_connect(
+static int on_connect(
 	int step, 
 	enum ATEVENT_T event,
 	char *buf, 
@@ -105,7 +105,7 @@ static int check_connect(
 	return -1;
 }
 
-static int check_netopen(
+static int on_netopen(
 	int step, 
 	enum ATEVENT_T event,
 	char *buf, 
@@ -121,11 +121,11 @@ static int check_netopen(
 	return -1;
 }
 
-const struct ATCMD_T sim7100c_at_tbl[] = {
+static const struct ATCMD_T at_tbl[] = {
 	//cmd					res			timeout		trytimes	check_res_proc
 	{"ATE1",				"OK",		2000,		20, 		0},
 	{"ATE0",				"OK",		2000,		20, 		0},
-	{"AT+CSQ",				NULL,		2000,		20, 		check_csq},
+	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
 	{"AT+CGDCONT=1,\"IP\",\"apn\"",		
 							"OK",		2000,		5, 			0},
 	{"AT+CGSOCKCONT=1,\"IP\",\"CMNET\"",		
@@ -133,27 +133,23 @@ const struct ATCMD_T sim7100c_at_tbl[] = {
 	{"AT+CSOCKSETPN=1",		"OK",		2000,		5, 			0},
 	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
 	ATCMD_DELAY(2000),
-	{"AT+NETOPEN",		 	NULL,		2000,		5, 			check_netopen},
+	{"AT+NETOPEN",		 	NULL,		2000,		5, 			on_netopen},
 	{"AT+CIPOPEN=0,\"TCP\",\"180.89.58.27\",9020",	
-							NULL/*"CONNECT"*/,	30000,5, 		check_connect},
+							NULL/*"CONNECT"*/,	30000,5, 		on_connect},
 };
 
-const int sim7100c_step_count = sizeof(sim7100c_at_tbl)/sizeof(sim7100c_at_tbl[0]);
+static const HX_ATARG_T defarg = {
+	.rm_ip = "180.89.58.27",
+	.rm_port = 9020,
+	.apn = "cmnet",
+	.user = "",
+	.passwd = "",
+};
 
-//return 0 is connect ,others are not
-int sim7100c_poll(void)
-{
-	char buf[4096];
-	int step = atc_sequence_poll(
-					sim7100c_at_tbl,
-					sim7100c_step_count,
-					buf,
-					4096,
-					NULL);
-	if(step < sim7100c_step_count){
-		return step;
-	}else{
-		return -1;
-	}
-}
+const struct HX_NIC_T nic_sim7100c = {
+	.default_arg = &defarg,
+	.at_tbl = at_tbl,
+	.at_tbl_count = sizeof(at_tbl)/sizeof(at_tbl[0]),
+	.init = atc_default_init,
+};
 

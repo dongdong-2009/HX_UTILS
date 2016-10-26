@@ -8,7 +8,7 @@
 #ifndef __UTILS_H__
 #define	__UTILS_H__
 
-#include "hx_def.h"
+
 
 #include "int.h"
 
@@ -108,8 +108,7 @@ void* pk_fill(void *to, int len, int d);
 void* pk_add(void *to, int len, const void *from);
 void* pk_get(void*from,int len,void* to);
 
-#include "hx_undef.h"
-	
+
 #endif
 
 

@@ -4,34 +4,56 @@
 #include "string.h"
 #include "stdarg.h"
 
-static int step = 0;
-int atc_set_step(int s)
+
+
+static HX_ATARG_T g_atarg = {0};
+HX_NIC_INFO_T g_nic_info = {0};
+
+
+void atc_get_arg(HX_ATARG_T *parg)
 {
-	int res = step;
-	step = s;
-	return res;
+	*parg = g_atarg;
 }
+void atc_set_arg(const HX_ATARG_T *parg)
+{
+	g_atarg = *parg;
+}
+
+int atc_default_init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
+{
+	if(pstep)
+		*pstep = 0;
+	if(arg)
+		g_atarg = *(HX_ATARG_T*)arg;
+	else
+		g_atarg = *(this->default_arg);
+	return 0;
+}
+
+
+#define ATC_POLL_BUFSIZE		(4096)
+
 /*
 	arguements:
-	at_tbl : define at cmd list and operation functions
-	tbl_len : at cmd list size
-	buff: recv data save here
-	buff_size: buffer len ,max save chars
-	msg: user defined data struct ,  usefor describ mes info
+	nic	:	net card struct
+	pstep : instans of current step
+	msg : private data here
+	return : current step
 
 	return:
 	normal return number is the current step.
 	when all step continued , return sum of item of at_tbl.
 */
-int atc_sequence_poll(
-    const struct ATCMD_T *at_tbl,
-    int tbl_len,
-    char *buff,
-    int buff_size,
-    void *msg
-)
+int atc_poll(const struct HX_NIC_T *nic, int *pstep, void *msg)
 {
+	if(nic == NULL | pstep == NULL)
+		return -1;
+	char buff[ATC_POLL_BUFSIZE];
+	const struct ATCMD_T *at_tbl = nic->at_tbl;
+    int tbl_len = nic->at_tbl_count;
+    int buff_size = ATC_POLL_BUFSIZE;
     int res;
+	int step = *pstep;
     if(step >= tbl_len)
         return tbl_len;
     static int is_send = 0;
@@ -40,7 +62,6 @@ int atc_sequence_poll(
     static int tmof_last_state_change = -1;
     if(tmof_last_state_change == -1)
         tmof_last_state_change = hx_get_tick_count();
-
     if(!is_send) {
         if(at_tbl[step].cmd) {	//if has cmd than send it
             //this is delay cmd ???
@@ -49,6 +70,7 @@ int atc_sequence_poll(
                     step ++ ;
                     is_send = 0;
                 }
+				*pstep = step;
                 return step;
             } else {
                 hx_uart_printf(UART_AT_PORT,"%s\r\n",at_tbl[step].cmd);
@@ -92,9 +114,11 @@ again:
             tmof_last_state_change = hx_get_tick_count();
             if(step == tbl_len) {
                 HX_DBG_PRINT("\tModule Init Complete\r\n");
-                return tbl_len;		//到头了
+				*pstep = step;
+                return -1;		//到头了
             } else {
-                return step-1;
+				*pstep = step;
+                return step;
             }
         } else {
             goto again;
@@ -106,17 +130,21 @@ again:
             if(--try_times<0) {
                 step = 0;
                 is_send = 0;	//复位
+				*pstep = step;
                 return 0;
             } else {
                 is_send = 0;	//重发
             }
         }
     }
-    return step;
+	
+	if(step < nic->at_tbl_count){
+		*pstep = step;
+		return step;
+	}else{
+		return -1;
+	}
 }
-
-
-
 
 int atc_getc_noblock(int *pc)
 {
