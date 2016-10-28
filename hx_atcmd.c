@@ -31,6 +31,20 @@ int atc_default_init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
 }
 
 
+int atc_init(const struct HX_NIC_T *nic, int *pstep, HX_ATARG_T *arg)
+{
+	if(nic->init)
+		return nic->init(nic,pstep,arg);
+	return 0;
+}
+void atc_reset(const struct HX_NIC_T *nic)
+{
+	if(nic->reset)
+		nic->reset(nic);
+	else
+		nic->init(nic,0,NULL);
+}
+
 #define ATC_POLL_BUFSIZE		(4096)
 
 /*

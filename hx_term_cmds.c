@@ -728,6 +728,85 @@ HXT_DEF_PROC(cr)
 	((void (*)(void))0)();
 	return 0;
 }
+int io_mode_ctrl(int argc, char *argv[])
+{
+	int res;
+	if(argc<3)
+		goto bad;
+	unsigned x,y,v;
+	res = sscanf(argv[1],"p%u.%u",&x,&y);
+	if(res!=2) goto bad;
+	res = sscanf(argv[2],"%u",&v);
+	if(res!=1) goto bad;
+	if(strcmp(argv[0],"ioctrl")==0)
+		brd_ioctrl(x,(unsigned)(1<<y),v);
+	else if(strcmp(argv[0],"iomode")==0)
+		brd_iomode(x,(unsigned)(1<<y),(IOMODE_T)v);
+	else
+		goto bad;
+	return 0;
+bad:
+	hxt_puts("Usage:");
+	hxt_printf("\t %s p<x>.<y>\r\n",argv[0]);
+	return -1;
+}
+	
+HXT_DEF_PROC(ioctrl)
+{
+	return io_mode_ctrl(argc,argv);
+}
+int io_set_clr(int argc, char *argv[], int v)
+{
+	int res;
+	if(argc<2)
+		goto bad;
+	unsigned x,y;
+	res = sscanf(argv[1],"p%u.%u",&x,&y);
+	if(res!=2) goto bad;
+	brd_ioctrl(x,(unsigned)(1<<y),v);
+	return 0;
+bad:
+	hxt_puts("Usage:");
+	hxt_printf("\t %s p<x>.<y>\r\n",argv[0]);
+	return -1;
+}
+HXT_DEF_PROC(iomode)
+{
+	return io_mode_ctrl(argc,argv);
+}
+HXT_DEF_PROC(ioclr)
+{
+	return io_set_clr(argc,argv,0);
+}
+HXT_DEF_PROC(ioset)
+{
+	return io_set_clr(argc,argv,1);
+}
+
+HXT_DEF_PROC(ioval)
+{
+	int res;
+	if(argc<2)
+		goto bad;
+	unsigned x,y,v;
+	res = sscanf(argv[1],"p%u.%u",&x,&y);
+	if(res==1){
+		v = brd_ioval(x);
+		hxt_printf("res=%08X\r\n",v);
+	}else if(res==2){
+		v = brd_ioval(x);
+		v = (v&(1<<y))?1:0;
+		hxt_printf("res=%x\r\n",v);
+	}else{
+		goto bad;
+	}
+	
+	return 0;
+bad:
+	hxt_puts("Usage:");
+	hxt_puts("\t ioval p<x>.[y]");
+	return -1;
+}
 const struct HXT_CMD_T g_cmd_list[] = {
 	{"help",	hxt_help,		"显示帮助信息"},
 	{"?",		hxt_help,		"显示帮助信息"},
@@ -740,6 +819,12 @@ const struct HXT_CMD_T g_cmd_list[] = {
 //	{"read",	hxt_read,		"读命令"},
 	{"ls",		hxt_list,		"列出文件列表"},
 	{"reset",	hxt_reset,		"复位"},
+	{"ioctrl",	hxt_ioctrl,		"I/O输出控制"},
+	{"iomode",	hxt_iomode,		"I/O模式控制"},
+	{"ioval",	hxt_ioval,		"I/O读取输入"},
+	{"ioclr",	hxt_ioclr,		"I/O输出0"},
+	{"ioset",	hxt_ioset,		"I/O输出1"},
+	
 //	{"psam",	hxt_psam,		"发送PSAM卡命令"},
 //	{"cpu",		hxt_psam,		"发送CPUCARD卡命令"},
 //	{"flash",	hxt_flash,		"操作falsh: r/w/e"},

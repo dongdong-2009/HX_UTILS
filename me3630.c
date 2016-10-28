@@ -122,12 +122,16 @@ static int on_netopen(
 }
 
 static const struct ATCMD_T at_tbl[] = {
-	//cmd					res			timeout		trytimes	check_res_proc
+	//cmd					res			timeout		trytimes	event_proc
 	{"ATE1",				"OK",		2000,		20, 		0},
 	{"ATE0",				"OK",		2000,		20, 		0},
 	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
 	{"AT+CGDCONT=1,\"IP\",\"apn\"",		
 							"OK",		2000,		5, 			0},
+	{"AT+ZSNT=0,0,0",		"OK",		2000,		5,			0},
+	//{"AT+CEREG?",			NULL,		2000,		10,			on_cereg},
+	//{"AT+ZPAS?",			NULL,		2000,		5,			on_zpas},
+	
 	{"AT+CGSOCKCONT=1,\"IP\",\"CMNET\"",		
 							"OK",		2000,		5, 			0},
 	{"AT+CSOCKSETPN=1",		"OK",		2000,		5, 			0},
@@ -146,9 +150,34 @@ static const HX_ATARG_T defarg = {
 	.passwd = "",
 };
 
+static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
+{
+	atc_default_init(this,pstep,arg);
+	#if defined(BRD_NIC_PWR) && defined(BRD_NIC_RST)
+		printf("sim7100c init.\n");
+		brd_ioctrl(BRD_NIC_PWR,1);	//default
+		brd_ioctrl(BRD_NIC_RST,1);
+		
+		brd_iomode(BRD_NIC_PWR,IM_OUT);	//output
+		brd_iomode(BRD_NIC_RST,IM_OUT);
+		
+		brd_ioctrl(BRD_NIC_PWR,0);	//power low 500
+		hx_delay_ms(500);
+		brd_ioctrl(BRD_NIC_PWR,1);
+		hx_delay_ms(1000);
+		brd_ioctrl(BRD_NIC_RST,0);	//rst low 500
+		hx_delay_ms(500);
+		brd_ioctrl(BRD_NIC_RST,1);
+		hx_delay_ms(1000);
+	#else
+		#error ***No Define Hardware Port, Might be not Work! 
+	#endif
+	return 0;
+}
+
 const struct HX_NIC_T nic_me3630 = {
 	.default_arg = &defarg,
 	.at_tbl = at_tbl,
 	.at_tbl_count = sizeof(at_tbl)/sizeof(at_tbl[0]),
-	.init = atc_default_init,
+	.init = _init,
 };

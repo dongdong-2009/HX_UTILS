@@ -6,12 +6,22 @@
 uint32_t g_fpclk = 0;
 uint32_t hx_get_gpclk(void)
 {
+	if(g_fpclk==0){
+		HX_DBG_PRINTLN("File:%s Line:%s Func:%s : FPCLK NOT SET",
+			__FILE__,__LINE__,__FUNCTION__);
+		while(1);
+	}
 	return g_fpclk;
 }
 void hx_utils_init(int pclk)
 {
+	int res;
 	g_fpclk = pclk;
 	hx_init_tickcount(g_fpclk);	
+	res = brd_init();
+	if(res){
+		fprintf(stderr,"board init error %d\n",res);
+	}
 	hxt_term_init();
 }
 

@@ -121,7 +121,14 @@ extern HX_NIC_INFO_T g_nic_info;
 
 ///=====================================
 // AT Export APIs
-
+/*
+	arguements:
+	nic	:	net card struct
+	pstep : instans of current step
+	arg : nic configuration
+	return : errno ,0 is success, others are bad
+*/
+extern int atc_init(const struct HX_NIC_T *nic, int *pstep, HX_ATARG_T *arg);
 /*
 	arguements:
 	nic	:	net card struct
@@ -129,11 +136,14 @@ extern HX_NIC_INFO_T g_nic_info;
 	msg : private data here
 	return : current step
 
-	return:
+	note:
 	normal return number is the current step.
-	when all step continued , return sum of item of at_tbl.
+	when all step continued , return -1
 */
 extern int atc_poll(const struct HX_NIC_T *nic, int *pstep, void *msg);
+
+extern void atc_reset(const struct HX_NIC_T *nic);
+
 
 extern int atc_getc_noblock(int *pc);
 extern int atc_getc_timeout(int *pc,int t);

@@ -1,6 +1,35 @@
 #include "hx_board.h"
 #include "hx_utils.h"
 
+__weak int brd_init(void)
+{
+	return 0;
+}
+
+__weak void brd_iomode(int port,uint pin,IOMODE_T val)
+{
+	cpu_iomode(port,pin,val);
+}
+__weak uint brd_ioval(int port)
+{
+	return cpu_ioval(port);
+}
+__weak void brd_ioctrl(int port,uint pin,int val)
+{
+	cpu_ioctrl(port,pin,val);
+}
+__weak void brd_ioclr(int port,uint pin)
+{
+	brd_ioctrl(port,pin,0);
+}
+__weak void brd_ioset(int port,uint pin)
+{
+	brd_ioctrl(port,pin,1);
+}
+
+
+//================================================================================
+
 __weak void brd_uart_tx_start_byte(int id,int data)
 {
 	cpu_uart_tx_start_byte(id,data);

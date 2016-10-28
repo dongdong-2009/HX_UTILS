@@ -41,8 +41,8 @@ int cpu_init_tickcount_1m_by_pclk( uint _pclk );
 uint cpu_get_tickcount(void);
 
 typedef enum __IOMODE_T {
-	IM_OUT,
-	IM_IN,
+	IM_IN = 0,
+	IM_OUT = 1,
 } IOMODE_T;
 
 #define PORT0	(0)
@@ -50,11 +50,11 @@ typedef enum __IOMODE_T {
 #define PORT2	(2)
 
 
-extern inline void cpu_iomode(int port,uint pin,IOMODE_T val);
-extern inline uint cpu_ioval(int port);
-extern inline void cpu_ioctrl(int port,uint pin,int val);
-extern inline void cpu_ioclr(int port,uint pin);
-extern inline void cpu_ioset(int port,uint pin);
+extern void cpu_iomode(int port,uint pin,IOMODE_T val);
+extern uint cpu_ioval(int port);
+extern void cpu_ioctrl(int port,uint pin,int val);
+extern void cpu_ioclr(int port,uint pin);
+extern void cpu_ioset(int port,uint pin);
 
 
 

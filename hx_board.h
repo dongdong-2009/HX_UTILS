@@ -2,6 +2,7 @@
 #define __HX_BOARD_H__
 
 #include "hx_cpu.h"
+#include "./board/brd_dq1200.h"
 
 /*
 	define default board configs
@@ -55,7 +56,11 @@
 /*
 	this file define the board procs
 */
+extern int brd_init(void);
 
+extern void brd_iomode(int port,uint pin,IOMODE_T val);
+extern uint brd_ioval(int port);
+extern void brd_ioctrl(int port,uint pin,int val);
 
 extern void brd_uart_tx_start_byte(int id,int data);
 extern void brd_uart_tx_end_session(int id);

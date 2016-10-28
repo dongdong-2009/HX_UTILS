@@ -37,29 +37,29 @@ static const IO_T iotbl[] = {
 
 };
 
-__weak inline void cpu_iomode(int port,uint pin,IOMODE_T val)
+__weak void cpu_iomode(int port,uint pin,IOMODE_T val)
 {
 	if(val == IM_IN)
 		*(iotbl[port].IODIR) &= ~pin;
 	else
 		*(iotbl[port].IODIR) |= pin;
 }
-__weak inline uint cpu_ioval(int port)
+__weak uint cpu_ioval(int port)
 {
 	return *(iotbl[port].IOPIN);
 }
-__weak inline void cpu_ioctrl(int port,uint pin,int val)
+__weak void cpu_ioctrl(int port,uint pin,int val)
 {
 	if(val == 0)
 		*(iotbl[port].IOCLR) |= pin;
 	else
 		*(iotbl[port].IOSET) |= pin;
 }
-__weak inline void cpu_ioclr(int port,uint pin)
+__weak void cpu_ioclr(int port,uint pin)
 {
 	cpu_ioctrl(port,pin,0);
 }
-__weak inline void cpu_ioset(int port,uint pin)
+__weak void cpu_ioset(int port,uint pin)
 {
 	cpu_ioctrl(port,pin,1);
 }
