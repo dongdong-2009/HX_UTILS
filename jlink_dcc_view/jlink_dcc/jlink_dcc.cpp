@@ -72,17 +72,24 @@ int change_ch(int ch)
 	last = ch;
 	return res;
 }
-volatile BOOL in_api = 0;
+//volatile BOOL in_api = 0;
 DWORD WINAPI ThreadFun(LPVOID pM)
 {
 	UINT32 res;
 	while (1) {
 		unsigned char c = _getch();
 		UINT32 data = 0x55000000u | c;
-		while (in_api);
-		in_api = 1;
-		JLINKARM_WriteDCC(&data, 1, 100);
-		in_api = 0;
+		//while (in_api);
+		//in_api = 1;
+		int ts = 20;
+		while (--ts>0) {
+			res = JLINKARM_WriteDCC(&data, 1, 50);
+			if (res == 1) {
+				break;
+			}
+		}
+		
+		//in_api = 0;
 	}
 }
 int main()
@@ -131,10 +138,10 @@ int main()
 		HANDLE handle = CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);
 		UINT32 buf[256];
 		while (1) {
-			while (in_api);
-			in_api = 1;
+			//while (in_api);
+			//in_api = 1;
 			res = JLINKARM_ReadDCC(buf, 256, 2);
-			in_api = 0;
+			//in_api = 0;
 			if (res) {
 				for (int i = 0; i < res; i++) {
 					UINT32 data = buf[i];

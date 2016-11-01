@@ -1,5 +1,7 @@
 ﻿  正在生成代码
+  1 of 7 functions (14.3%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   已完成代码的生成
-  All 7 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   jlink_dcc.vcxproj -> D:\HX_UTILS\jlink_dcc_view\Release\jlink_dcc.exe
   jlink_dcc.vcxproj -> D:\HX_UTILS\jlink_dcc_view\Release\jlink_dcc.pdb (Full PDB)

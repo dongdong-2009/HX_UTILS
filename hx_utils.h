@@ -5,10 +5,10 @@
  *      Author: houxd
  */
 
-#ifndef __UTILS_H__
-#define	__UTILS_H__
+#ifndef __HX_UTILS_H__
+#define	__HX_UTILS_H__
 
-
+#define __HX_UTILS__
 
 #include "int.h"
 
@@ -67,18 +67,18 @@ extern char *hx_strtrim2(char *p, const char *trim_list);
 //==========================================================
 // uint8_t ARRAY <==>  uint16_t(2Bytes) uint32_t(4Bytes) QWORD(8Bytes)
 // MSB = Big Endian, LSB = Littie Endian
-extern uint16_t HX_LSB_B2W(const uint8_t *data);
-extern uint16_t HX_MSB_B2W(const uint8_t *data);
-extern uint32_t HX_MSB_B2DW(const uint8_t *data);
-extern uint32_t HX_LSB_B2DW(const uint8_t *data);
-extern uint64_t HX_MSB_B2QW(const uint8_t *data);
-extern uint64_t HX_LSB_B2QW(const uint8_t *data);
-extern void HX_LSB_W2B(uint16_t v,uint8_t *p);
-extern void HX_MSB_W2B(uint16_t v,uint8_t *p);
-extern void HX_MSB_DW2B(uint32_t v,uint8_t *p);
-extern void HX_LSB_DW2B(uint32_t v,uint8_t *p);
-extern void HX_MSB_QW2B(uint64_t v,uint8_t *p);
-extern void HX_LSB_QW2B(uint64_t v,uint8_t *p);
+extern uint16_t HX_LSB_B2W(const void *data);
+extern uint16_t HX_MSB_B2W(const void *data);
+extern uint32_t HX_MSB_B2DW(const void *data);
+extern uint32_t HX_LSB_B2DW(const void *data);
+extern uint64_t HX_MSB_B2QW(const void *data);
+extern uint64_t HX_LSB_B2QW(const void *data);
+extern void HX_LSB_W2B(uint16_t v,void *p);
+extern void HX_MSB_W2B(uint16_t v,void *p);
+extern void HX_MSB_DW2B(uint32_t v,void *p);
+extern void HX_LSB_DW2B(uint32_t v,void *p);
+extern void HX_MSB_QW2B(uint64_t v,void *p);
+extern void HX_LSB_QW2B(uint64_t v,void *p);
 
 //==========================================================
 // convert str <=> value with fmt

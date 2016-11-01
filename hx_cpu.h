@@ -45,9 +45,10 @@ typedef enum __IOMODE_T {
 	IM_OUT = 1,
 } IOMODE_T;
 
-#define PORT0	(0)
-#define PORT1	(1)
-#define PORT2	(2)
+#define PORT0		(0)
+#define PORT1		(1)
+#define PORT2		(2)
+#define PORT_MAX	(10)
 
 
 extern void cpu_iomode(int port,uint pin,IOMODE_T val);

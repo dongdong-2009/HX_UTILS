@@ -135,6 +135,11 @@ do{																\
 	p = pk_add((p), (n), (x));	\
 	PK_DEBUG_ARRAY((p),(n),(x));	\
 }	
+#define PK_FILL(p,n,x)	\
+{\
+	p = pk_fill((p), (n), (x));	\
+	PK_DEBUG_FILL((p),(n),(x));	\
+}	
 #define PK_ADD_BYTE(p,x)	\
 {\
 	*p++ = (x); \

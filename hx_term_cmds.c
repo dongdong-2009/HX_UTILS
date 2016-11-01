@@ -747,7 +747,7 @@ int io_mode_ctrl(int argc, char *argv[])
 	return 0;
 bad:
 	hxt_puts("Usage:");
-	hxt_printf("\t %s p<x>.<y>\r\n",argv[0]);
+	hxt_printf("\t %s p<x>.<y> <val>\r\n",argv[0]);
 	return -1;
 }
 	
@@ -819,6 +819,7 @@ const struct HXT_CMD_T g_cmd_list[] = {
 //	{"read",	hxt_read,		"读命令"},
 	{"ls",		hxt_list,		"列出文件列表"},
 	{"reset",	hxt_reset,		"复位"},
+	
 	{"ioctrl",	hxt_ioctrl,		"I/O输出控制"},
 	{"iomode",	hxt_iomode,		"I/O模式控制"},
 	{"ioval",	hxt_ioval,		"I/O读取输入"},
@@ -832,6 +833,3 @@ const struct HXT_CMD_T g_cmd_list[] = {
 };
 
 int g_cmd_count = sizeof(g_cmd_list)/sizeof(g_cmd_list[0]);
-
-
-

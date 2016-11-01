@@ -323,132 +323,145 @@ int hx_value2str(const void* value,const char *format,
 // uint8_t ARRAY <==>  uint16_t(2Bytes) uint32_t(4Bytes) QWORD(8Bytes)
 // MSB = Big Endian, LSB = Littie Endian
 
-uint16_t HX_LSB_B2W(const uint8_t *data)
+uint16_t HX_LSB_B2W(const void *data)
 {
+	const uint8_t *d = data;
     uint16_t res;
-    res = (uint16_t)(data[1]);
+    res = (uint16_t)(d[1]);
     res <<= 8;
-    res += (uint16_t)(data[0]);
+    res += (uint16_t)(d[0]);
     return res;
 }
-uint16_t HX_MSB_B2W(const uint8_t *data)
+uint16_t HX_MSB_B2W(const void *data)
 {
+	const uint8_t *d = data;
     uint16_t res;
-    res = (uint16_t)(data[0]);
+    res = (uint16_t)(d[0]);
     res <<= 8;
-    res += (uint16_t)(data[1]);
+    res += (uint16_t)(d[1]);
     return res;
-}		
-void HX_LSB_W2B(uint16_t v,uint8_t *p)
-{
-    p[0] =  0xFF & (v>>0);
-    p[1] =  0xFF & (v>>8);
 }
-void HX_MSB_W2B(uint16_t v,uint8_t *p)
+uint64_t HX_MSB_B2QW(const void *data)
 {
-    p[0] =  0xFF & (v>>8);
-    p[1] =  0xFF & (v>>0);
-}
-void HX_MSB_DW2B(uint32_t v,uint8_t *p)
-{
-    p[0] =  0xFF & (v>>24);
-    p[1] =  0xFF & (v>>16);
-    p[2] =  0xFF & (v>>8);
-    p[3] =  0xFF & (v>>0);
-}
-void HX_MSB_QW2B(uint64_t v,uint8_t *p)
-{
-	p[0] =  0xFF & (v>>56);
-    p[1] =  0xFF & (v>>48);
-    p[2] =  0xFF & (v>>40);
-    p[3] =  0xFF & (v>>32);
-    p[4] =  0xFF & (v>>24);
-    p[5] =  0xFF & (v>>16);
-    p[6] =  0xFF & (v>>8);
-    p[7] =  0xFF & (v>>0);
-}
-void HX_LSB_DW2B(uint32_t v,uint8_t *p)
-{
-    p[3] =  0xFF & (v>>24);
-    p[2] =  0xFF & (v>>16);
-    p[1] =  0xFF & (v>>8);
-    p[0] =  0xFF & (v>>0);
-}
-void HX_LSB_QW2B(uint64_t v,uint8_t *p)
-{
-	p[7] =  0xFF & (v>>56);
-    p[6] =  0xFF & (v>>48);
-    p[5] =  0xFF & (v>>40);
-    p[4] =  0xFF & (v>>32);
-    p[3] =  0xFF & (v>>24);
-    p[2] =  0xFF & (v>>16);
-    p[1] =  0xFF & (v>>8);
-    p[0] =  0xFF & (v>>0);
-}
-uint64_t HX_MSB_B2QW(const uint8_t *data)
-{
+    const uint8_t *d = data;
     uint64_t res;
-	res = (uint64_t)data[0];
+	res = (uint64_t)d[0];
     res <<=8;
-    res += (uint64_t) data[1];
+    res += (uint64_t) d[1];
     res <<=8;
-    res += (uint64_t) data[2];
+    res += (uint64_t) d[2];
     res <<=8;
-    res += (uint64_t) data[3];
+    res += (uint64_t) d[3];
 	res <<=8;
-    res += (uint64_t) data[4];
+    res += (uint64_t) d[4];
     res <<=8;
-    res += (uint64_t) data[5];
+    res += (uint64_t) d[5];
     res <<=8;
-    res += (uint64_t) data[6];
+    res += (uint64_t) d[6];
     res <<=8;
-    res += (uint64_t) data[7];
+    res += (uint64_t) d[7];
     return res;
 }
-uint32_t HX_MSB_B2DW(const uint8_t *data)
+uint32_t HX_MSB_B2DW(const void *data)
 {
+	const uint8_t *d = data;
     uint32_t res;
-    res = (uint32_t)data[0];
+    res = (uint32_t)d[0];
     res <<=8;
-    res += (uint32_t) data[1];
+    res += (uint32_t) d[1];
     res <<=8;
-    res += (uint32_t) data[2];
+    res += (uint32_t) d[2];
     res <<=8;
-    res += (uint32_t) data[3];
+    res += (uint32_t) d[3];
     return res;
 }
-uint64_t HX_LSB_B2QW(const uint8_t *data)
+uint64_t HX_LSB_B2QW(const void *data)
 {
+	const uint8_t *d = data;
     uint64_t res;
-	res = (uint64_t)data[7];
+	res = (uint64_t)d[7];
     res <<=8;
-    res += (uint64_t) data[6];
+    res += (uint64_t) d[6];
     res <<=8;
-    res += (uint64_t) data[5];
+    res += (uint64_t) d[5];
     res <<=8;
-    res += (uint64_t) data[4];
+    res += (uint64_t) d[4];
 	res <<=8;
-    res += (uint64_t) data[3];
+    res += (uint64_t) d[3];
     res <<=8;
-    res += (uint64_t) data[2];
+    res += (uint64_t) d[2];
     res <<=8;
-    res += (uint64_t) data[1];
+    res += (uint64_t) d[1];
     res <<=8;
-    res += (uint64_t) data[0];
+    res += (uint64_t) d[0];
     return res;
 }
-uint32_t HX_LSB_B2DW(const uint8_t *data)
+uint32_t HX_LSB_B2DW(const void *data)
 {
+	const uint8_t *d = data;
     uint32_t res;
-    res = (uint32_t)data[3];
+    res = (uint32_t)d[3];
     res <<=8;
-    res += (uint32_t) data[2];
+    res += (uint32_t) d[2];
     res <<=8;
-    res += (uint32_t) data[1];
+    res += (uint32_t) d[1];
     res <<=8;
-    res += (uint32_t) data[0];
+    res += (uint32_t) d[0];
     return res;
 }
+void HX_LSB_W2B(uint16_t v,void *p)
+{
+	uint8_t *_p = p;
+    _p[0] =  0xFF & (v>>0);
+    _p[1] =  0xFF & (v>>8);
+}
+void HX_MSB_W2B(uint16_t v,void *p)
+{
+    uint8_t *_p = p;
+    _p[0] =  0xFF & (v>>8);
+    _p[1] =  0xFF & (v>>0);
+}
+void HX_MSB_DW2B(uint32_t v,void *p)
+{
+    uint8_t *_p = p;
+    _p[0] =  0xFF & (v>>24);
+    _p[1] =  0xFF & (v>>16);
+    _p[2] =  0xFF & (v>>8);
+    _p[3] =  0xFF & (v>>0);
+}
+void HX_MSB_QW2B(uint64_t v,void *p)
+{
+	uint8_t *_p = p;
+    _p[0] =  0xFF & (v>>56);
+    _p[1] =  0xFF & (v>>48);
+    _p[2] =  0xFF & (v>>40);
+    _p[3] =  0xFF & (v>>32);
+    _p[4] =  0xFF & (v>>24);
+    _p[5] =  0xFF & (v>>16);
+    _p[6] =  0xFF & (v>>8);
+    _p[7] =  0xFF & (v>>0);
+}
+void HX_LSB_DW2B(uint32_t v,void *p)
+{
+    uint8_t *_p = p;
+    _p[3] =  0xFF & (v>>24);
+    _p[2] =  0xFF & (v>>16);
+    _p[1] =  0xFF & (v>>8);
+    _p[0] =  0xFF & (v>>0);
+}
+void HX_LSB_QW2B(uint64_t v,void *p)
+{
+	uint8_t *_p = p;
+    _p[7] =  0xFF & (v>>56);
+    _p[6] =  0xFF & (v>>48);
+    _p[5] =  0xFF & (v>>40);
+    _p[4] =  0xFF & (v>>32);
+    _p[3] =  0xFF & (v>>24);
+    _p[2] =  0xFF & (v>>16);
+    _p[1] =  0xFF & (v>>8);
+    _p[0] =  0xFF & (v>>0);
+}
+
 int hx_delay_ms(int ms)
 {
 	hx_do_timeout(ms);

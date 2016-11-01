@@ -40,24 +40,26 @@ int brd_init(void)
 	return -1;
 }
 
-static inline int port_equal(int po1,uint pi1,int po2,uint pi2)
+static inline int is_extend_io2(int po,uint pi)
 {
-	if(po1==po2 && pi1==pi2)
+	if(po>=SB_PORT0){
 		return 1;
+	}
 	return 0;
 }
-static inline int port_equal2(int po1,uint pi1,int po2)
+static inline int is_extend_io(int po)
 {
-	if(po1==po2)
+	if(po>=SB_PORT0){
 		return 1;
+	}
 	return 0;
 }
 
 
 void brd_iomode(int port,uint pin,IOMODE_T val)
 {
-	if(port_equal(BRD_NIC_PWR,port,pin) ||
-		port_equal(BRD_NIC_RST,port,pin)){
+	if(is_extend_io2(port,pin)){
+		port -= SB_PORT0;
 		atc_printf("hx+iomode+3+%x+%x+%x\r\n",
 			port,pin,(int)(val==IM_OUT?1:0));
 		return;
@@ -68,8 +70,8 @@ uint brd_ioval(int port)
 {
 	int res ;
 	uint val = cpu_ioval(port);
-	if(port_equal2(BRD_NIC_PWR,port) ||
-		port_equal2(BRD_NIC_RST,port)){
+	if(is_extend_io(port)){
+		port -= SB_PORT0;
 		atc_printf("hx+ioval+1+%x\r\n",
 			port);
 		char buff[64];
@@ -93,8 +95,8 @@ void brd_ioctrl(int port,uint pin,int val)
 #ifdef SUB_BOARD_IO_INVERSE
 	val = val?0:1;
 #endif
-	if(port_equal(BRD_NIC_PWR,port,pin) ||
-		port_equal(BRD_NIC_RST,port,pin)){
+	if(is_extend_io2(port,pin)){
+		port -= SB_PORT0;
 		atc_printf("hx+ioctrl+3+%x+%x+%x\r\n",
 			port,pin,(int)val);
 		return;

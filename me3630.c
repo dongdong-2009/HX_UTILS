@@ -90,56 +90,49 @@ static int on_csq(
 	}
 	return -1;
 }
-static int on_connect(
+static int check_zipcall(
 	int step, 
 	enum ATEVENT_T event,
 	char *buf, 
 	void *msg)
 {
-	if(strstr(buf,"FAIL"))	//CONNECT FAIL
-		return -1;
-	if(strstr(buf,"ERROR"))	//CONNECT ERROR
-		return -2;			
-	if(strstr(buf,"CONNECT"))	//CONNECT 115200 / ALREADY CONNECT etc..
+	int id;
+	sscanf(buf,"+ZIPCALL: %d,",&id);
+	if(id>0){
 		return 0;
-	return -1;
-}
-
-static int on_netopen(
-	int step, 
-	enum ATEVENT_T event,
-	char *buf, 
-	void *msg)
-{
-	int res;
-	if(buf[0] == '+'){
-		int a=-1;
-		res = sscanf(buf,"+NETOPEN: %d",&a);
-		if(res==1 && a==0)
-			return 0;
 	}
 	return -1;
 }
 
+static int check_zipstat(
+	int step, 
+	enum ATEVENT_T event,
+	char *buf, 
+	void *msg)
+{
+	int socket,state;
+	sscanf(buf,"+ZIPSTAT: %d,%d",&socket,&state);
+    if(socket>0 && state==1)
+        return 0;
+    return -1;
+}
 static const struct ATCMD_T at_tbl[] = {
 	//cmd					res			timeout		trytimes	event_proc
 	{"ATE1",				"OK",		2000,		20, 		0},
 	{"ATE0",				"OK",		2000,		20, 		0},
 	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
-	{"AT+CGDCONT=1,\"IP\",\"apn\"",		
-							"OK",		2000,		5, 			0},
 	{"AT+ZSNT=0,0,0",		"OK",		2000,		5,			0},
 	//{"AT+CEREG?",			NULL,		2000,		10,			on_cereg},
 	//{"AT+ZPAS?",			NULL,		2000,		5,			on_zpas},
 	
-	{"AT+CGSOCKCONT=1,\"IP\",\"CMNET\"",		
-							"OK",		2000,		5, 			0},
-	{"AT+CSOCKSETPN=1",		"OK",		2000,		5, 			0},
-	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
-	ATCMD_DELAY(2000),
-	{"AT+NETOPEN",		 	NULL,		2000,		5, 			on_netopen},
-	{"AT+CIPOPEN=0,\"TCP\",\"180.89.58.27\",9020",	
-							NULL/*"CONNECT"*/,	30000,5, 		on_connect},
+	//{"AT+CGDCONT=1,\"IP\",\"CMNET\"",		
+	//						"OK",		2000,		5, 			0},
+	
+	{"AT+ZIPCFG=cmnet",		"OK",		2000,		5,			0},
+	{"AT+ZIPCALL=1",		NULL,		3000,		10,			check_zipcall,},
+	ATCMD_DELAY(3000),
+	{"AT+ZIPOPEN=1,0,180.89.58.27,9020",
+							NULL,		3000,		5,			check_zipstat},	
 };
 
 static const HX_ATARG_T defarg = {
