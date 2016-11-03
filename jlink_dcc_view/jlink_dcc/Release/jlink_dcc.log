@@ -1,5 +1,7 @@
-﻿  正在生成代码
-  1 of 7 functions (14.3%) were compiled, the rest were copied from previous compilation.
+﻿  jlink_dcc.cpp
+jlink_dcc.cpp(121): warning C4101: “res”: 未引用的局部变量
+  正在生成代码
+  1 of 14 functions ( 7.1%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
     0 functions had inline decision re-evaluated but remain unchanged
   已完成代码的生成

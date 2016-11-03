@@ -3,6 +3,7 @@
 
 __weak int brd_init(void)
 {
+	HX_DBG_PRINTLN ("HX_UTILS:WARNING:board not config.");
 	return 0;
 }
 

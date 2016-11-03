@@ -7,6 +7,7 @@
 #include <conio.h>
 #include "tlhelp32.h" 
 #include<signal.h>
+#include "direct.h"
 
 void (*JLINKARM_Open)(void);
 void(*JLINKARM_Close)(void);
@@ -21,6 +22,34 @@ UINT32 (*JLINKARM_ReadDCCFast)(UINT32 *buf, UINT32 size, INT timeout);
 UINT32 (*JLINKARM_WriteDCCFast)(const UINT32 *buf, UINT32 size, INT timeout);
 UINT32 (*JLINKARM_WaitDCCRead)(UINT32 timeout);
 void (*JLINKARM_SetSpeed)(UINT32 spd);
+UINT32(*JLINKARM_ExecCommand)(const char* cmd,UINT32 a,UINT32 b);
+
+int load_jlinkarm_dll(void)
+{
+	HINSTANCE lib = LoadLibrary("JLinkARM.dll");
+	if (lib == NULL) {
+		return -1;
+	}
+
+	JLINKARM_Open = (void(*)(void))(GetProcAddress(lib, "JLINKARM_Open"));
+	JLINKARM_Close = (void(*)(void))(GetProcAddress(lib, "JLINKARM_Close"));
+	JLINKARM_IsOpen = (bool(*)(void))GetProcAddress(lib, "JLINKARM_IsOpen");
+	JLINKARM_GetSN = (UINT32(*)(void))GetProcAddress(lib, "JLINKARM_GetSN");
+	JLINKARM_GetId = (UINT32(*)(void))GetProcAddress(lib, "JLINKARM_GetId");
+	JLINKARM_GetDLLVersion = (UINT32(*)(void))GetProcAddress(lib, "JLINKARM_GetDLLVersion");
+	JLINKARM_GetSpeed = (UINT32(*)(void))GetProcAddress(lib, "JLINKARM_GetSpeed");
+	JLINKARM_ReadDCC = (UINT32(*)(UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_ReadDCC");
+	JLINKARM_WriteDCC = (UINT32(*)(const UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_WriteDCC");
+	JLINKARM_ReadDCCFast = (UINT32(*)(UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_ReadDCCFast");
+	JLINKARM_WriteDCCFast = (UINT32(*)(const UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_WriteDCCFast");
+	JLINKARM_WaitDCCRead = (UINT32(*)(UINT32))GetProcAddress(lib, "JLINKARM_WaitDCCRead");
+	JLINKARM_SetSpeed = (void(*)(UINT32))GetProcAddress(lib, "JLINKARM_SetSpeed");
+	JLINKARM_ExecCommand = (UINT32(*)(const char *, UINT32, UINT32))GetProcAddress(lib, "JLINKARM_ExecCommand");
+
+	return 0;
+}
+
+
 /*
 FOREGROUND_BLUE 前景色为蓝
 FOREGROUND_GREEN 前景色为绿
@@ -72,67 +101,85 @@ int change_ch(int ch)
 	last = ch;
 	return res;
 }
+void dcc_send(int c)
+{
+	UINT32 res;
+	UINT32 data = 0x55000000u | c;
+	//while (in_api);
+	//in_api = 1;
+	int ts = 20;
+	while (--ts > 0) {
+		res = JLINKARM_WriteDCC(&data, 1, 50);
+		if (res == 1) {
+			break;
+		}
+	}
+}
 //volatile BOOL in_api = 0;
 DWORD WINAPI ThreadFun(LPVOID pM)
 {
 	UINT32 res;
 	while (1) {
 		unsigned char c = _getch();
-		UINT32 data = 0x55000000u | c;
-		//while (in_api);
-		//in_api = 1;
-		int ts = 20;
-		while (--ts>0) {
-			res = JLINKARM_WriteDCC(&data, 1, 50);
-			if (res == 1) {
-				break;
-			}
+		if (c == 0xE0) {
+
 		}
+
+		dcc_send(c);
 		
 		//in_api = 0;
 	}
 }
-int main()
+int main(int argc, char *argv[])
 {
-	printf("jlink_dcc_view_V0.2 by houxd ,build %s %s\r\n",__DATE__,__TIME__);
+	signal(SIGINT, 0);
+	printf("jlink_dcc_view_V0.3 by houxd ,build %s %s\r\n",__DATE__,__TIME__);
 	int res;
-	HINSTANCE lib = LoadLibrary("JLinkARM.dll");
-	if (lib == NULL) {
+	res = load_jlinkarm_dll();
+	if (res) {
 		printf("Cannot Load Dll JLinkARM.dll \r\n");
 		getchar();
 		return -1;
 	}
 	printf("Load Dll JLinkARM.dll Success \r\n");
 
-	JLINKARM_Open = (void(*)(void))(GetProcAddress(lib, "JLINKARM_Open"));
-	JLINKARM_Close = (void(*)(void))(GetProcAddress(lib, "JLINKARM_Close"));
-	JLINKARM_IsOpen = (bool(*)(void))GetProcAddress(lib, "JLINKARM_IsOpen");
-	JLINKARM_GetSN = (UINT32(*)(void))GetProcAddress(lib, "JLINKARM_GetSN");
-	JLINKARM_GetId = (UINT32(*)(void))GetProcAddress(lib, "JLINKARM_GetId");
-	JLINKARM_GetDLLVersion = (UINT32(*)(void))GetProcAddress(lib, "JLINKARM_GetDLLVersion");
-	JLINKARM_GetSpeed = (UINT32(*)(void))GetProcAddress(lib, "JLINKARM_GetSpeed");
-	JLINKARM_ReadDCC = (UINT32(*)(UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_ReadDCC");
-	JLINKARM_WriteDCC = (UINT32(*)(const UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_WriteDCC");
-	JLINKARM_ReadDCCFast = (UINT32(*)(UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_ReadDCCFast");
-	JLINKARM_WriteDCCFast = (UINT32(*)(const UINT32 *, UINT32, INT))GetProcAddress(lib, "JLINKARM_WriteDCCFast");
-	JLINKARM_WaitDCCRead = (UINT32(*)(UINT32))GetProcAddress(lib, "JLINKARM_WaitDCCRead");
-	JLINKARM_SetSpeed = (void (*)(UINT32))GetProcAddress(lib, "JLINKARM_SetSpeed");
+	char *self = argv[0];
+	char config_file[512] = { 0 };
+	strcpy_s(config_file, 512, argv[0]);
+	char *p = strrchr(config_file, '\\');
+	if (p) {
+		strcpy_s(p,512, "\\jlinkarm_cfg.ini");
+	}
+	else {
+		strcpy_s(config_file,512, "jlinkarm_cfg.ini");
+	}
 
-	signal(SIGINT, 0);
+	char device[64]="";
+	GetPrivateProfileString("JLINKARM", "device", "", device, 64, config_file);
+	UINT32 speed = GetPrivateProfileInt("JLINKARM", "speed", 200, config_file);
 
 	printf("Open JLink ... ");
-
 	JLINKARM_Open();
 	if (JLINKARM_IsOpen())
 	{
 		printf("OK\r\n");
-		JLINKARM_SetSpeed(200);
+		if (device[0]) {
+			char buff[128];
+			sprintf_s(buff, "device = %s", device);
+			JLINKARM_ExecCommand(buff, 0, 0);
+		}
+		else {
+			printf("Not config device, Press Any Key to setlect.\r\n");
+			_getch();
+		}
+		JLINKARM_SetSpeed(speed);
 
 		printf("JLink Info:\r\n");
-		printf("SN=%08u\r\n", JLINKARM_GetSN());
-		printf("ID=%08X\r\n", JLINKARM_GetId());
-		printf("VER=%u\r\n", JLINKARM_GetDLLVersion());
-		printf("Speed=%u\r\n", JLINKARM_GetSpeed());
+		printf("DEVICE = %s\r\n", device);
+		printf("SN = %08u\r\n", JLINKARM_GetSN());
+		printf("ID = %08X\r\n", JLINKARM_GetId());
+		printf("VER = %u\r\n", JLINKARM_GetDLLVersion());
+		printf("Speed = %u\r\n", JLINKARM_GetSpeed());
 		printf("=============================================================\r\n");
 
 		HANDLE handle = CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);

@@ -1,4 +1,5 @@
 #include "hx_cpu.h"
+#include "hx_utils.h"
 #include "./cpu/lpc2368_reg.h"
 #include "./cpu/lpc2368_conf.h"
 
@@ -11,6 +12,7 @@ static volatile uint g_tickcount;
 
 __weak uint cpu_get_tickcount(void)
 {
+	HX_DBG_PRINTLN ("HX_UTILS:WARNING:cpu not config.");
 	return g_tickcount;
 }
 static uint sysreg;

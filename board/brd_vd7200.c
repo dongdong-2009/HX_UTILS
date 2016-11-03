@@ -8,6 +8,12 @@
 #define RS485_CFG_RECV()	cpu_ioclr(RS485_RD)
 #define RS485_CFG_SEND()	cpu_ioset(RS485_RD)
 
+int brd_init(void)
+{
+	HX_DBG_PRINTLN ("BOARD:VD7200");
+	return 0;
+}
+
 /*
 	must enable tx interrupt.
 */
