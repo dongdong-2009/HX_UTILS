@@ -1,17 +1,21 @@
-#include "hx_cpu.h"
-#include "./cpu/lpc2368_reg.h"
-#include "./cpu/lpc2368_conf.h"
-
-extern void UART_RX_BYTE(int id, int data);
-extern void UART_TX_BYTE(int id);
+#include "compile.h"
+#include "./cpu/lpc2378_reg.h"
+#include "./cpu/lpc2378_conf.h"
+#include "./cpu/cpu_lpc2378.h"
 
 
+extern void brd_uart_rx_byte(int id, int data);
+extern void brd_uart_tx_byte(int id);
+extern void brd_uart_rx_byte(int id, int data);
+extern void brd_uart_tx_byte(int id);
 
-static volatile uint g_tickcount;
+
+
+volatile unsigned __g_cpu_tickcount;
 
 uint cpu_get_tickcount(void)
 {
-	return g_tickcount;
+	return __g_cpu_tickcount;
 }
 static uint sysreg;
 void cpu_interrupt_ctrl(int en)
@@ -26,45 +30,44 @@ typedef volatile unsigned long IOREG_T;
 typedef struct __IO_T 
 {
 	IOREG_T* IODIR;
-	IOREG_T* IOSET;
-	IOREG_T* IOCLR;
+	//IOREG_T* IOSET;
+	//IOREG_T* IOCLR;
 	IOREG_T* IOPIN;
 } IO_T;
 
 static const IO_T iotbl[] = {
-	{&IODIR0,&IOSET0,&IOCLR0,&IOPIN0},
-	{&IODIR1,&IOSET1,&IOCLR1,&IOPIN0},
+	{&IODIR0,/*&IOSET0,&IOCLR0,*/&IOPIN0},
+	{&IODIR1,/*&IOSET1,&IOCLR1,*/&IOPIN0},
 
 };
 
-inline void cpu_iomode(int port,uint pin,IOMODE_T val)
+void cpu_iomode(int port,uint pin,IOMODE_T val)
 {
 	if(val == IM_IN)
 		*(iotbl[port].IODIR) &= ~pin;
 	else
 		*(iotbl[port].IODIR) |= pin;
 }
-inline uint cpu_ioval(int port)
+uint cpu_ioval(int port)
 {
 	return *(iotbl[port].IOPIN);
 }
-inline void cpu_ioctrl(int port,uint pin,int val)
+void cpu_ioctrl(int port,uint val)
 {
-	if(val == 0)
-		*(iotbl[port].IOCLR) |= pin;
-	else
-		*(iotbl[port].IOSET) |= pin;
+	*(iotbl[port].IOPIN) |= val;
 }
-inline void cpu_ioclr(int port,uint pin)
+void cpu_ioclr(int port,uint pin)
 {
-	cpu_ioctrl(port,pin,0);
+	uint val = cpu_ioval(port);
+	val &= ~pin;
+	cpu_ioctrl(port,val);
 }
-inline void cpu_ioset(int port,uint pin)
+void cpu_ioset(int port,uint pin)
 {
-	cpu_ioctrl(port,pin,1);
+	uint val = cpu_ioval(port);
+	val |= pin;
+	cpu_ioctrl(port,val);
 }
-
-
 
 static uint UART_Init( uint PortNum, uint baudrate ,uint _Fpclk);
 static void EnableUart(BYTE portnum);
@@ -129,7 +132,7 @@ static void RTCHandler (void) __irq
 		RTC_ILR |= B00000010;		//????
 	}else if(RTC_ILR & B00000100){
 		RTC_ILR |= B00000100;		//?????
-		g_tickcount ++;
+		__g_cpu_tickcount ++;
 	}else{
 	}
     VICVectAddr = 0;		/* Acknowledge Interrupt */
@@ -200,12 +203,12 @@ static void UART0Handler (void) __irq
         }
         if ( LSRValue & LSR_RDR )	/* Receive Data Ready */
         {
-			UART_RX_BYTE(0,U0RBR);
+			brd_uart_rx_byte(0,U0RBR);
         }
     }
     else if ( IIRValue == IIR_RDA )	/* Receive Data Available */
     {
-		UART_RX_BYTE(0,U0RBR);
+		brd_uart_rx_byte(0,U0RBR);
 
     }
     else if ( IIRValue == IIR_CTI )	/* Character timeout indicator */
@@ -221,7 +224,7 @@ static void UART0Handler (void) __irq
 		valid data in U1THR or not */
         if ( LSRValue & LSR_THRE )
         {
-			UART_TX_BYTE(0);
+			brd_uart_tx_byte(0);
 
         }
     }
@@ -253,13 +256,13 @@ static void UART1Handler (void) __irq
         }
         if ( LSRValue & LSR_RDR )	/* Receive Data Ready */
         {
-			UART_RX_BYTE(1,U1RBR);
+			brd_uart_rx_byte(1,U1RBR);
             
         }
     }
     else if (IIRValue==IIR_RDA )	/* Receive Data Available */
     {
-		UART_RX_BYTE(1,U1RBR);       
+		brd_uart_rx_byte(1,U1RBR);       
     }
     else if ( IIRValue == IIR_CTI )	/* Character timeout indicator */
     {
@@ -274,7 +277,7 @@ static void UART1Handler (void) __irq
 		valid data in U0THR or not */
         if ( LSRValue & LSR_THRE )
         {
-           UART_TX_BYTE(1);
+           brd_uart_tx_byte(1);
         }
     }
     //  IDISABLE;
@@ -307,12 +310,12 @@ static void UART2Handler (void) __irq
         }
         if ( LSRValue & LSR_RDR )	/* Receive Data Ready */
         {
-            UART_RX_BYTE(2,U2RBR);
+            brd_uart_rx_byte(2,U2RBR);
         }
     }
     else if ( IIRValue == IIR_RDA )	/* Receive Data Available */
     {
-		UART_RX_BYTE(2,U2RBR);
+		brd_uart_rx_byte(2,U2RBR);
        
     }
     else if ( IIRValue == IIR_CTI )	/* Character timeout indicator */
@@ -328,7 +331,7 @@ static void UART2Handler (void) __irq
 		valid data in U0THR or not */
         if ( LSRValue & LSR_THRE )
         {
-		UART_TX_BYTE(2);
+		brd_uart_tx_byte(2);
         }
     }
     //  IDISABLE;
@@ -360,14 +363,14 @@ static void UART3Handler (void) __irq
         if ( LSRValue & LSR_RDR )	/* Receive Data Ready */
         {
 			int data = U3RBR;
-			UART_RX_BYTE(3,data);
+			brd_uart_rx_byte(3,data);
             
         }
     }
     else if ( IIRValue == IIR_RDA )	/* Receive Data Available */
     {
 		int data = U3RBR;
-		UART_RX_BYTE(3,data);
+		brd_uart_rx_byte(3,data);
        
     }
     else if ( IIRValue == IIR_CTI )	/* Character timeout indicator */
@@ -383,7 +386,7 @@ static void UART3Handler (void) __irq
 		valid data in U3THR or not */
         if ( LSRValue & LSR_THRE )
         {
-			UART_TX_BYTE(3);
+			brd_uart_tx_byte(3);
         }
     }
     //  IDISABLE;
@@ -398,8 +401,8 @@ static uint UART_Init( uint PortNum, uint baudrate ,uint _Fpclk)
     Dummy=Dummy;
     if(PortNum == 0 )//GPRS??
     {
-        //PCONP |= 1<<3;
-        //PINSEL0 |= 0x00000050;     // zwjiang modify 2012-6-20  /* RxD0 and TxD0 */
+        PCONP |= 1<<3;
+        PINSEL0 |= 0x00000050;     // zwjiang modify 2012-6-20  /* RxD0 and TxD0 */
         U0LCR = 0x83;		/* 8 bits, no Parity, 1 Stop bit */
         Fdiv = ( _Fpclk / 16 ) / baudrate ;	/*baud rate */
         U0DLM = Fdiv / 256;
@@ -417,8 +420,8 @@ static uint UART_Init( uint PortNum, uint baudrate ,uint _Fpclk)
     }
     else if ( PortNum == 1 )
     {
-       // PCONP |= 1<<4;
-       // PINSEL4 |= 0x0000000a;       /*p2.0 p2.1 RxD1 and TxD1 */
+        PCONP |= 1<<4;
+        PINSEL4 |= 0x0000000a;       /*p2.0 p2.1 RxD1 and TxD1 */
         U1LCR = 0x83;		/* 8 bits, no Parity, 1 Stop bit */
         Fdiv = ( _Fpclk / 16 ) / baudrate ;	/*baud rate */
         U1DLM = Fdiv / 256;
@@ -436,8 +439,8 @@ static uint UART_Init( uint PortNum, uint baudrate ,uint _Fpclk)
     }
     else if(PortNum == 2)
     {
-        //PCONP |= 1<<24;
-       // PINSEL4 |= 0x000a0000;       /* RxD2 and TxD2 P2.8 P2.9*/
+        PCONP |= 1<<24;
+        PINSEL4 |= 0x000a0000;       /* RxD2 and TxD2 P2.8 P2.9*/
         U2LCR = 0x83;		/* 8 bits, no Parity, 1 Stop bit */
         Fdiv = ( _Fpclk / 16 ) / baudrate ;	/*baud rate */
         U2DLM = Fdiv / 256;
@@ -455,8 +458,8 @@ static uint UART_Init( uint PortNum, uint baudrate ,uint _Fpclk)
     }
     else if (PortNum == 3)//232??485
     {
-      //  PCONP|= 1<<25;
-      //  PINSEL0|=0x0000000A; /* Enable TxD3 P0.0 RxD3 P0.1 */
+        PCONP|= 1<<25;
+        PINSEL0|=0x0000000A; /* Enable TxD3 P0.0 RxD3 P0.1 */
         U3LCR = 0x83;		/* 8 bits, no Parity, 1 Stop bit */
         Fdiv = ( _Fpclk / 16 ) / baudrate ;	/*baud rate */
         U3DLM = Fdiv / 256;

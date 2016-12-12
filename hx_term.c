@@ -6,13 +6,15 @@
  */
 
 #include "hx_utils.h"
-#include "hx_board.h"
 #include "stdio.h"
 #include "string.h"
 #include "stdarg.h"
+#include "hx_device.h"
 
 
 #define HXT_TRIM_CHAR_LIST		" \r\n\t"
+
+
 
 /*
 	extern cmd list
@@ -64,34 +66,31 @@ static int g_gets_count=0;
 static int g_cursor_pos=0;
 static int g_ctrl_mode = 0;
 
+
 #ifdef __HX_ENABLE_DEBUG__
 int g_enable_debug_output = HX_OUTPUT_STATE_DEFAULT;
 #endif
 
 
-#ifdef UART_TERMINAL_PORT
-#define __port_input_get_char(pc) hx_uart_getc_noblock(UART_TERMINAL_PORT,pc)
-//static int __port_input_get_char(int *c)
-//{
-//	return uart_getc_noblock(UART_TERMINAL_PORT,c);
-//}
-int hxt_getc_noblock(int *c)
-{
-	return __port_input_get_char(c);
-}
-#define __port_output_put_char( c) hx_uart_putc(UART_TERMINAL_PORT,c)
-//static int __port_output_put_char(int c)
-//{
-//	uart_putc(UART_TERMINAL_PORT,c);
-//	return 0;
-//}
-#endif
 
 //not call ctype.h ,use self is ok
 static int hx_isprint(int c)	
 {
 	return c>=0x20 && c<127;
 }
+//------------------------------------------------------
+
+int hxt_getc_noblock(int *c)
+{
+	return hxl_getc_noblock(&hx_stdin,c);
+}
+void hxt_put_char(int c) 
+{
+	hxl_putc(&hx_stdout,c);
+}
+
+
+
 /*
 	only two case can return :
 	<0:now is no char
@@ -131,6 +130,8 @@ static int hxt_gets_echo(char *buff, int buf_size)
 	}while(IS_CTRL_CHAR(-res));
 	return res;
 }
+
+
 /*
 	only two case can return :
 	<0:now is no char
@@ -141,7 +142,7 @@ static int _hxt_gets_echo(char *buff, int buf_size)
 	int res;
 	int c;
 	while(1){
-		res = __port_input_get_char(&c);
+		res = hxt_getc_noblock(&c);
 		if(res)
 			return -1001;
 		
@@ -159,9 +160,9 @@ static int _hxt_gets_echo(char *buff, int buf_size)
 				res = last_cmd_str(buff);
 				if(res){
 					for(int i=0;i<g_gets_count;i++){
-						__port_output_put_char('');
-						__port_output_put_char(' ');
-						__port_output_put_char('');
+						hxt_put_char('');
+						hxt_put_char(' ');
+						hxt_put_char('');
 					}
 					g_gets_count = res;
 					g_cursor_pos = res;
@@ -176,9 +177,9 @@ static int _hxt_gets_echo(char *buff, int buf_size)
 				res = next_cmd_str(buff);
 				if(res){
 					for(int i=0;i<g_gets_count;i++){
-						__port_output_put_char('');
-						__port_output_put_char(' ');
-						__port_output_put_char('');
+						hxt_put_char('');
+						hxt_put_char(' ');
+						hxt_put_char('');
 					}
 					g_gets_count = res;
 					g_cursor_pos = res;
@@ -209,13 +210,16 @@ static int _hxt_gets_echo(char *buff, int buf_size)
 				g_ctrl_mode = 3;
 				continue;
 			default:
+				if(hx_isprint(c))
+					return c;
 				g_ctrl_mode = 0;
-				continue;
+				return -'';
+				//continue;
 			}
 		}
 		if(c=='\n' || c=='\r'){		//endl
-			__port_output_put_char('\r');
-			__port_output_put_char('\n');
+			hxt_put_char('\r');
+			hxt_put_char('\n');
 			if(g_gets_count>0){
 				memcpy(buff,g_gets_buf,g_gets_count);
 				buff[g_gets_count] = 0;
@@ -236,24 +240,24 @@ static int _hxt_gets_echo(char *buff, int buf_size)
 				}
 				g_gets_count --;
 				g_cursor_pos --;
-				__port_output_put_char('\b');
+				hxt_put_char('\b');
 				if(tmp>0){
 					for(int i=g_cursor_pos;i<g_gets_count;i++){
-						__port_output_put_char(g_gets_buf[i]);
+						hxt_put_char(g_gets_buf[i]);
 					}
-					__port_output_put_char(' ');
+					hxt_put_char(' ');
 					while(tmp-->0)
-						__port_output_put_char('\b');
-					__port_output_put_char('\b');
+						hxt_put_char('\b');
+					hxt_put_char('\b');
 				}else{
-					__port_output_put_char(' ');
-					__port_output_put_char('\b');
+					hxt_put_char(' ');
+					hxt_put_char('\b');
 				}
 			}
 			continue;
-//		}else if(c == ''){		//ctrl
-//			g_ctrl_mode = 1;
-//			return -'';		//-0x1B
+		}else if(c == ''){		//ctrl
+			g_ctrl_mode = 1;
+			//return -'';		//-0x1B
 		}else if(IS_CTRL_CHAR(c)){
 			return -c;			//ctrl-char
 		}else{
@@ -269,13 +273,13 @@ static int _hxt_gets_echo(char *buff, int buf_size)
 				g_cursor_pos ++;
 				g_gets_count ++;
 		
-				__port_output_put_char(c);
+				hxt_put_char(c);
 				if(tmp>0){
 					for(int i=g_cursor_pos;i<g_gets_count;i++){
-						__port_output_put_char(g_gets_buf[i]);
+						hxt_put_char(g_gets_buf[i]);
 					}
 					while(tmp-->0)
-						__port_output_put_char('\b');
+						hxt_put_char('\b');
 				}
 			}
 			continue;
@@ -284,7 +288,7 @@ static int _hxt_gets_echo(char *buff, int buf_size)
 }
 int hxt_putc(int c)
 {
-	__port_output_put_char(c);
+	hxt_put_char(c);
 	return 0;
 }
 int hxt_put(const char *s)
@@ -292,7 +296,7 @@ int hxt_put(const char *s)
 	const char *p = s;
 	int c;
 	while((c=*p++)!=0){
-		__port_output_put_char(c);
+		hxt_put_char(c);
 	}
 	return 0;
 }
@@ -627,7 +631,7 @@ int hxt_exec_cmd(const char *cmd)
 	return res;
 }
 
-int hxt_term_polling(void)
+int hxt_term_poll(void)
 {
 	int res;
 	/*
@@ -652,12 +656,12 @@ int hxt_term_polling(void)
 	}
 }
 
-int hxt_term_run(int argc, char *argv[])
+int hxt_term_run(void)
 {
 	hxt_term_init();
 
 	for(;;){
-		hxt_term_polling();
+		hxt_term_poll();
 	}
 }
 int hxt_printf(const char *fmt, ...)
@@ -671,9 +675,23 @@ int hxt_printf(const char *fmt, ...)
     hxt_put(buff);
 	return res;
 }
+int hxt_fprintf(HX_DEV *d,const char *fmt, ...)
+{
+	int res;
+	va_list ap;
+    char buff[MAX_CHARS_LINE];
+    va_start (ap, fmt);
+    res = vsprintf(buff,fmt,ap);
+    va_end(ap);
+	
+    hxt_put(buff);
+	return res;
+}
 
 int hx_get_arg(int argc,char *argv[],const char *arg, char **res)
 {
+	if(argc<=0)
+		return -2;
 	for(int i=0;i<argc;i++){
 		if(argv[i]==NULL)
 			continue;
@@ -689,6 +707,8 @@ int hx_get_arg(int argc,char *argv[],const char *arg, char **res)
 }
 int hx_get_arg_bool(int argc,char *argv[],const char *arg,int* res)
 {
+	if(argc<=0)
+		return -2;
 	for(int i=0;i<argc;i++){
 		if(argv[i]==NULL)
 			continue;
@@ -703,6 +723,8 @@ int hx_get_arg_bool(int argc,char *argv[],const char *arg,int* res)
 }
 int hx_get_arg_int(int argc,char *argv[],const char *arg, int *res)
 {
+	if(argc<=0)
+		return -2;
 	for(int i=0;i<argc;i++){
 		if(argv[i]==NULL)
 			continue;

@@ -1,5 +1,4 @@
 #include "hx_utils.h"
-#include "hx_board.h"
 #include "string.h"
 #include "stdio.h"
 
@@ -163,7 +162,7 @@ static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
 		brd_ioctrl(BRD_NIC_RST,1);
 		hx_delay_ms(1000);
 	#else
-		#error ***No Define Hardware Port, Might be not Work! 
+		#warning ***No Define Hardware Port, Might be not Work! 
 	#endif
 	return 0;
 }

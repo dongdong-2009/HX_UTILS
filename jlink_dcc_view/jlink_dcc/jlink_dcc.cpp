@@ -8,6 +8,7 @@
 #include "tlhelp32.h" 
 #include<signal.h>
 #include "direct.h"
+#include <time.h>
 
 void (*JLINKARM_Open)(void);
 void(*JLINKARM_Close)(void);
@@ -115,6 +116,26 @@ void dcc_send(int c)
 		}
 	}
 }
+
+FILE* flog;
+time_t log_time;
+DWORD log_tickcount;
+void log_putchar(int c)
+{
+	if (flog == NULL)
+		return;
+	fputc(c, flog);
+	if (c == '\n') {
+		DWORD n = GetTickCount()- log_tickcount;
+		time_t t = log_time + n / 1000;
+		int ms = n % 1000;
+		tm tm;
+		localtime_s(&tm, &t);
+		fprintf(flog, "[%02u:%02u:%02u:%03u]\t",
+			tm.tm_hour,tm.tm_sec,tm.tm_sec,ms);
+	}
+	fflush(flog);
+}
 //volatile BOOL in_api = 0;
 DWORD WINAPI ThreadFun(LPVOID pM)
 {
@@ -122,12 +143,55 @@ DWORD WINAPI ThreadFun(LPVOID pM)
 	while (1) {
 		unsigned char c = _getch();
 		if (c == 0xE0) {
+			//^V<> HPKM
 
+
+			c = _getch();
+			switch (c)
+			{
+			case 'H':	//u
+				dcc_send('\x1b');
+				dcc_send('[');
+				dcc_send('A');
+				break;
+			case 'P':	//d
+				dcc_send('\x1b');
+				dcc_send('[');
+				dcc_send('B');
+				break;
+			case 'M':	//l
+				dcc_send('\x1b');
+				dcc_send('[');
+				dcc_send('C');
+				break;
+			case 'K':	//r
+				dcc_send('\x1b');
+				dcc_send('[');
+				dcc_send('D');
+				break;
+				//case 'I':	//pu
+				//	dcc_send('D');
+				//	break;
+				//case 'Q':	//pd
+				//	dcc_send('Q');
+				//	break;
+				//case 'G':	//home
+				//	dcc_send('G');
+				//	break;
+				//case 'O':	//end
+				//	dcc_send('O');
+				//	break;
+			default:
+				break;
+			}
 		}
+		else
+		{
+			dcc_send(c);
+			//printf("input: [%c] %02X\r\n", c, (int)c);
 
-		dcc_send(c);
-		
-		//in_api = 0;
+			//in_api = 0;
+		}
 	}
 }
 int main(int argc, char *argv[])
@@ -144,15 +208,42 @@ int main(int argc, char *argv[])
 	printf("Load Dll JLinkARM.dll Success \r\n");
 
 	char *self = argv[0];
+	char log_file[512] = { 0 };
+	{
+		strcpy_s(log_file, 512, argv[0]);
+		
+		time_t t;
+		time(&t);
+		tm tm;
+		localtime_s(&tm, &t);
+		char log_fname[512];
+		sprintf_s(log_fname, "\\log-%04u%02u%02u.txt",
+			tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday);
+		char *p = strrchr(log_file, '\\');
+		if (p) {
+			strcpy_s(p, 512, log_fname);
+		}
+		else {
+			strcpy_s(log_file, 512, "\\jlinkdcc_log.txt");
+		}
+	}
+	fopen_s(&flog,log_file, "a+");
+	if (flog == NULL) {
+		printf("WARNING: log file can not creat.\r\n");
+	}
+
 	char config_file[512] = { 0 };
-	strcpy_s(config_file, 512, argv[0]);
-	char *p = strrchr(config_file, '\\');
-	if (p) {
-		strcpy_s(p,512, "\\jlinkarm_cfg.ini");
+	{	
+		strcpy_s(config_file, 512, argv[0]);
+		char *p = strrchr(config_file, '\\');
+		if (p) {
+			strcpy_s(p, 512, "\\jlinkarm_cfg.ini");
+		}
+		else {
+			strcpy_s(config_file, 512, "jlinkarm_cfg.ini");
+		}
 	}
-	else {
-		strcpy_s(config_file,512, "jlinkarm_cfg.ini");
-	}
+
 
 	char device[64]="";
 	GetPrivateProfileString("JLINKARM", "device", "", device, 64, config_file);
@@ -184,6 +275,10 @@ int main(int argc, char *argv[])
 
 		HANDLE handle = CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);
 		UINT32 buf[256];
+		fprintf(flog, "------------------------------------------------------------\r\n");
+		log_tickcount = GetTickCount();
+		time(&log_time);
+		log_putchar('\n');	//record a time label
 		while (1) {
 			//while (in_api);
 			//in_api = 1;
@@ -199,6 +294,7 @@ int main(int argc, char *argv[])
 					int c = data & 0xFFu;
 					if (ch >= 0 && ch <= 0x7F) {
 						putchar(c);
+						log_putchar(c);
 					}
 					change_ch(chbak);
 				}

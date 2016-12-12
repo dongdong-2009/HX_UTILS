@@ -6,7 +6,7 @@
 /*
 	clear current rx buffer, remaber this!!!!
 */
-extern int hx_uart_atc_rxclr(int id);
+extern void hx_uart_rxclr(int id);
 /*
 	return 0 is got char
 	others is not
@@ -36,7 +36,7 @@ extern void hx_uart_putc(int id, int c);
 /*
 	when len==0 this is usefor wait last send compelte.
 */
-extern void hx_uart_send(int port,const char *data,int len);
+extern int hx_uart_send(int id, const char *data, int len);
 extern void hx_uart_put(int id,const char *s);
 extern void hx_uart_puts(int id,const char *s);
 extern int hx_uart_printf(int port_nr, const  char *format, ...);
@@ -44,7 +44,7 @@ extern int hx_uart_printf(int port_nr, const  char *format, ...);
 /*
 	init
 */
-extern int hx_uart_init(int port_nr, int bps, int pclk);
+extern int hx_uart_init(int id, int bps);
 
 #endif
 

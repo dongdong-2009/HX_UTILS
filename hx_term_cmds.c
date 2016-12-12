@@ -1,22 +1,14 @@
 /*
- * hx_term_cmds.c
- *
- *  Created on: 2016ƒÍ7‘¬25»’
- *      Author: houxd
- */
+* hx_term_cmds.c
+*
+*  Created on: 2016ƒÍ7‘¬25»’
+*      Author: houxd
+*/
 
 #include "hx_utils.h"
-#include "hx_board.h"
 #include "stdio.h"
 #include "string.h"
-
-
-/*
-	Board Params need
-*/
-extern const DEV_PARAM_T g_param_tbl[];
-extern const int g_param_count;
-extern int HX_PARAM_LOADSTORE(int load0store1);
+#include "hxd_param.h"
 
 
 //void asc_to_hex(const void* asc,int len,void *hex)
@@ -31,7 +23,7 @@ extern int HX_PARAM_LOADSTORE(int load0store1);
 //		l = l>='A'?l-'A'+0xA:l-'0';
 //		unsigned int res = (h<<4) + (0xFu & l);
 //		_bin[i/2] = (unsigned char) res;
-//		
+//
 //	}
 //}
 
@@ -52,7 +44,7 @@ extern int HX_PARAM_LOADSTORE(int load0store1);
 //	if(l>=MAX_CHARS_LINE/2)
 //		return -2;
 //	asc_to_hex(argv[1],l,buf);
-//	
+//
 //	extern tk_uint16 tkSmartCardCmdBase(tk_int16 iTrLen,tk_uint8 * ucpTrData);
 //	int res = tkSmartCardCmdBase(l/2,(void*)buf);
 //	hex_to_asc(ucSMTCARD_RC_DATA,uiSMTCARD_RC_LEN,buf);
@@ -214,7 +206,7 @@ extern int HX_PARAM_LOADSTORE(int load0store1);
 //	int chip = 0;
 //	char *argi;
 //	if(argc<3) goto bad_arg;
-//	
+//
 //	argi = argv[1];
 //	switch(*argi){
 //		case 'r':
@@ -242,13 +234,13 @@ extern int HX_PARAM_LOADSTORE(int load0store1);
 //				continue;
 //			}
 //		}
-//		
+//
 //		//arguement is chip
 //		if(rwe==2 && strcmp(argi,"chip")==0){
 //			chip = 1;
 //			continue;
 //		}
-//		
+//
 //		//check is format: v=d
 //		char *v = strtok(argi,"=");
 //		char *d = strtok(NULL,"=");
@@ -259,11 +251,11 @@ extern int HX_PARAM_LOADSTORE(int load0store1);
 //			else goto bad_arg;
 //			continue;
 //		}
-//		
+//
 //		//what arg???
 //		goto bad_arg;
 //	}
-//	
+//
 //	switch(rwe){
 //		case 0:	//read
 //			if(blk<0||chip||data)
@@ -294,8 +286,8 @@ extern int HX_PARAM_LOADSTORE(int load0store1);
 //		default:
 //			goto bad_arg;
 //	}
-//	
-//bad_arg:	
+//
+//bad_arg:
 //	hxt_puts(" Usage:");
 //	hxt_puts("\t flash <r|read> <blk=value> [ofs=value] [bs=value]");
 //	hxt_puts("\t flash <w|write> <blk=value> <ofs=value> <data>");
@@ -308,528 +300,819 @@ extern int HX_PARAM_LOADSTORE(int load0store1);
 ///*
 
 /*
-	demo a b=0 c=
+demo a b=0 c=
 */
 int hxt_demo(int argc, char *argv[])
 {
 //	paras_param(argc,argv,&param_tbl);
-	return 0;
+    return 0;
 }
 
 /*
-	<fmt>,count,split-chars
-	bcd n .		"\x20\x16"		<=>	"2016"		this not surpport 
-												count ,split-chars .
-	bin											like before
-	asc 5		'houxd123'		<=>	"houxd"		
-	i 4 .		[127][0][0][1]	<=> "127.0.0.1"
-	%d			100	(DWORD)			<=>	"100"
-	%hd/%hu		WORD
-	%hhd/%hhu		BYTE
-	%ld/%lu		QWORD
-	msb 2/4/8
-	lsb 2/4/8
+<fmt>,count,split-chars
+bcd n .		"\x20\x16"		<=>	"2016"		this not surpport
+							count ,split-chars .
+bin											like before
+asc 5		'houxd123'		<=>	"houxd"
+i 4 .		[127][0][0][1]	<=> "127.0.0.1"
+%d			100	(DWORD)			<=>	"100"
+%hd/%hu		WORD
+%hhd/%hhu		BYTE
+%ld/%lu		QWORD
+msb 2/4/8
+lsb 2/4/8
 */
+
+//HXT_DEF_PROC(param)
+//{
+//	int res;
+//	res = HX_PARAM_LOADSTORE(0);
+//	if(res){
+//		hxt_printf("*** Load Params Return Error %d\r\n",res);
+//		return -1;
+//	}
+//	const PARAM_ITEM_T *pm;
+//	foreach(g_param_tbl,g_param_count,pm){
+//		char *arg;
+//		hx_get_arg(argc,argv,pm->name,&arg);
+//		if(argc<=1){
+//			//show
+//			char buf[MAX_CHARS_LINE];
+//			hx_value2str(pm->data,pm->data_type,buf);
+//			hxt_printf("%s=%s\r\n",pm->name,buf);
+//		}else{
+//			if(arg){
+//				//change
+//				res = hx_str2value(arg,pm->data_type,pm->data);
+//				if(res){
+//					hxt_printf("Change Param Error: %s,type:%s\r\n",
+//						pm->name,pm->data_type);
+//					goto bad_arg;
+//				}
+//			}
+//
+//		}
+//	}
+//	if(argc>1){
+//		res = HX_PARAM_LOADSTORE(1);
+//		if(res){
+//			hxt_printf("*** Load Params Return Error %d\r\n",res);
+//			return -1;
+//		}
+//	}
+//	return 0;
+//bad_arg:
+//	hxt_puts("Usage:");
+//	hxt_puts("\t param	: show target device params or change theam");
+//	return 0;
+//}
+
 
 HXT_DEF_PROC(param)
 {
-	int res;
-	res = HX_PARAM_LOADSTORE(0);
-	if(res){
-		hxt_printf("*** Load Params Return Error %d\r\n",res);
-		return -1;
-	}
-	const DEV_PARAM_T *pm;
-	foreach(g_param_tbl,g_param_count,pm){
-		char *arg;
-		hx_get_arg(argc,argv,pm->name,&arg);
-		if(argc<=1){
-			//show
-			char buf[MAX_CHARS_LINE];
-			hx_value2str(pm->data,pm->data_type,buf);
-			hxt_printf("%s=%s\r\n",pm->name,buf);
-		}else{
-			if(arg){
-				//change
-				res = hx_str2value(arg,pm->data_type,pm->data);
-				if(res){
-					hxt_printf("Change Param Error: %s,type:%s\r\n",
-						pm->name,pm->data_type);
-					goto bad_arg;
-				}
-			}
-			
-		}
-	}
-	if(argc>1){
-		res = HX_PARAM_LOADSTORE(1);
-		if(res){
-			hxt_printf("*** Load Params Return Error %d\r\n",res);
-			return -1;
-		}
-	}
-	return 0;
-bad_arg:
-	hxt_puts("Usage:");
-	hxt_puts("\t param	: show target device params or change theam");
-	return 0;
-}
-
-
-
-
-#define HXT_DEFAULT_UART_PARAM			"115200,8n1"
-HXT_DEF_PROC(devcfg)
-{
-	int res;
-	char *dev = NULL;
-	char *uart_param = NULL;
-	HX_GET_ARG(dev);
-	HX_GET_ARG(uart_param);
-	if(!dev || !uart_param)
-		goto bad_arg;
-	if(memcmp(dev,"uart",4)==0)
-	{
-		int uart_id;
-		sscanf(dev,"uart%d",&uart_id);
-		if(uart_id<0 || uart_id >= UART_PORTS_NUM){
-			HXT_PARAM_ERROR(dev);
-			hxt_puts("no this device.");
-			goto bad_arg;
-		}
-		int bps;
-		res = sscanf(uart_param,"%d,%*s",&bps);
-		if(res == 1){
-			hx_uart_init(uart_id,bps,hx_get_gpclk());
-		}
-	}
-	return 0;
-bad_arg:
-	if(strcmp(argv[0],"devcfg"))
-		return -1;
-	hxt_puts("Usage:");
-	hxt_puts("\t devcfg dev=<uart0|uart1|...etc>  uart_param=<bps>[,8n1]");
-	return -1;
-}
-static void next_value(char **s, char *array)
-{
-	char *ss = *s;
-	char *f = strtok(array,",");
-	if(ss){
-		do{
-			if(strcmp(ss,f)==0){
-				*s = strtok(NULL,",");
-				return;
-			}
-			f = strtok(NULL,",");
-		}while(f);
-		*s = NULL;	
-		return;
-	}else{
-		*s = f;
-	}
-}
-HXT_DEF_PROC(link)
-{
-	int res;
-	char *dev = NULL;
-	int hexmode = 0;
-	char *uart_param = NULL;
-	int echo = 0;
-	char *oc = NULL;
-	char *ic = NULL;
-	int linemode = 0;
-	
-	int dev_idx = HX_GET_ARG(dev);
-	HX_GET_ARG_BOOL(hexmode);
-	HX_GET_ARG(uart_param);
-	HX_GET_ARG_BOOL(echo);
-	HX_GET_ARG(oc);
-	HX_GET_ARG(ic);
-	HX_GET_ARG_BOOL(linemode);
-	
+    int res;
+    HX_DEV dev;
+	const PARAM_DEV_T *pdev;
+    const PARAM_ITEM_T *g_param_tbl;
+    int g_param_count;
+    const PARAM_ITEM_T *pm;
 	if(argc<2)
 		goto bad_arg;
-	
-	if(!dev) goto bad_arg;
-	if(uart_param)
-		res = hxt_devcfg(argc,argv);
-	else{
-		uart_param = "115200,8n1";
-		char *argv2[3] = {
-			"link",argv[dev_idx],"uart_param=115200,8n1",};
-		res = hxt_devcfg(3,argv2);
-	}
-	if(res){
-		HXT_PARAM_ERROR(uart_param);
-		goto bad_arg;
-	}
-	
-	if(memcmp(dev,"uart",4)==0)
-	{
-		int uart_id;
-		sscanf(dev,"uart%d",&uart_id);
-		if(uart_id<0 || uart_id >= UART_PORTS_NUM){
-			HXT_PARAM_ERROR(dev);
-			hxt_puts("no this device.");
-			goto bad_arg;
+    res = hx_open(argv[1],"",&dev);
+    if(res) {
+        hxt_fprintf(&hx_stderr,"cannot open dev \"param\"");
+        return res;
+    }
+    pdev = (const PARAM_DEV_T *)dev.pdev;
+    g_param_tbl = pdev->tbl;
+    g_param_count = pdev->count;
+    foreach(g_param_tbl,g_param_count,pm) {
+        char *arg;
+        hx_get_arg(argc-2,argv+2,pm->name,&arg);
+        if(argc==2) {
+            //show
+            char buf[MAX_CHARS_LINE];
+            hx_value2str(pm->data,pm->data_type,buf);
+            hxt_printf("%s=%s\r\n",pm->name,buf);
+        } else {
+            if(arg) {
+                //change
+                res = hx_str2value(arg,pm->data_type,pm->data);
+                if(res) {
+                    hxt_printf("Change Param Error: %s,type:%s\r\n",
+                               pm->name,pm->data_type);
+                    goto bad_arg;
+                }
+            }
+
+        }
+    }
+    if(argc>1) {
+        res =hx_close(&dev);
+        if(res) {
+            hxt_fprintf(&hx_stderr,"close param device error %d\r\n",res);
+            return -1;
+        }
+    }
+    return 0;
+bad_arg:
+    hxt_puts("Usage:");
+    hxt_puts("\t param	<dev>  [p=v]");
+    return 0;
+}
+
+
+
+//#define HXT_DEFAULT_UART_PARAM			"115200,8n1"
+//HXT_DEF_PROC(devcfg)
+//{
+//	int res;
+//	char *dev = NULL;
+//	char *uart_param = NULL;
+//	HX_GET_ARG(dev);
+//	HX_GET_ARG(uart_param);
+//	if(!dev || !uart_param)
+//		goto bad_arg;
+//	if(memcmp(dev,"uart",4)==0)
+//	{
+//		int uart_id;
+//		sscanf(dev,"uart%d",&uart_id);
+//		if(uart_id<0 || uart_id >= UART_PORTS_NUM){
+//			HXT_PARAM_ERROR(dev);
+//			hxt_puts("no this device.");
+//			goto bad_arg;
+//		}
+//		int bps;
+//		res = sscanf(uart_param,"%d,%*s",&bps);
+//		if(res == 1){
+//			hx_uart_init(uart_id,bps);
+//		}
+//	}
+//	return 0;
+//bad_arg:
+//	if(strcmp(argv[0],"devcfg"))
+//		return -1;
+//	hxt_puts("Usage:");
+//	hxt_puts("\t devcfg dev=<uart0|uart1|...etc>  uart_param=<bps>[,8n1]");
+//	return -1;
+//}
+static void next_value(char **s, char *array)
+{
+    char *ss = *s;
+    char *f = strtok(array,",");
+    if(ss) {
+        do {
+            if(strcmp(ss,f)==0) {
+                *s = strtok(NULL,",");
+                return;
+            }
+            f = strtok(NULL,",");
+        } while(f);
+        *s = NULL;
+        return;
+    } else {
+        *s = f;
+    }
+}
+//HXT_DEF_PROC(link)
+//{
+//	int res;
+//	char *dev = NULL;
+//	int hexmode = 0;
+//	char *uart_param = NULL;
+//	int echo = 0;
+//	char *oc = NULL;
+//	char *ic = NULL;
+//	int linemode = 0;
+//
+//	int dev_idx = HX_GET_ARG(dev);
+//	HX_GET_ARG_BOOL(hexmode);
+//	HX_GET_ARG(uart_param);
+//	HX_GET_ARG_BOOL(echo);
+//	HX_GET_ARG(oc);
+//	HX_GET_ARG(ic);
+//	HX_GET_ARG_BOOL(linemode);
+//
+//	if(argc<2)
+//		goto bad_arg;
+//
+//	if(!dev) goto bad_arg;
+//	if(uart_param)
+//		res = hxt_devcfg(argc,argv);
+//	else{
+//		uart_param = "115200,8n1";
+//		char *argv2[3] = {
+//			"link",argv[dev_idx],"uart_param=115200,8n1",};
+//		res = hxt_devcfg(3,argv2);
+//	}
+//	if(res){
+//		HXT_PARAM_ERROR(uart_param);
+//		goto bad_arg;
+//	}
+//
+//	if(memcmp(dev,"uart",4)==0)
+//	{
+//		int uart_id;
+//		sscanf(dev,"uart%d",&uart_id);
+//		if(uart_id<0 || uart_id >= UART_PORTS_NUM){
+//			HXT_PARAM_ERROR(dev);
+//			hxt_puts("no this device.");
+//			goto bad_arg;
+//		}
+//		hxt_printf("link to %s , %s , %s \r\n",
+//			dev,uart_param?uart_param:("uart_param=" HXT_DEFAULT_UART_PARAM),
+//		hexmode?"hex mode":"bin mode");
+//		int c=0;
+//		char hex[3]={0};
+//		int n=0;
+//		while(1){
+//			//dev->console
+//			res = hx_uart_getc_noblock(uart_id,&c);
+//			if(res==0){
+//				if(hexmode)
+//					hxt_printf("%02X",c);
+//				else{
+//					hxt_putc(c);
+//					if(ic){
+//						if(c=='\r' && strcmp(ic,"crlf")==0)
+//							hxt_putc('\n');
+//						else if(c=='\n' && strcmp(ic,"lfcr")==0)
+//							hxt_putc('\r');
+//					}
+//				}
+//			}
+//			//console->dev
+//			if(linemode){
+//				char *line = 0;
+//				do{
+//					res = hxt_gets_echo_noblock(&line);
+//					if(IS_CTRL_CHAR(-res)){
+//						c = -res;
+//						goto config;
+//					}
+//					if(res>=0 && line){
+//						if(hexmode){
+//							int l = strlen(line);
+//							char buff[MAX_CHARS_LINE/2];
+//							hx_hexcode2bin(line,l,buff);
+//							hx_uart_send(uart_id,buff,l>>1);
+//
+//						}else{
+//							hx_uart_put(uart_id,line);
+//						}
+//						if(oc){
+//							if(strcmp(oc,"cr")==0)
+//								hx_uart_put(uart_id,"\r");
+//							else if(strcmp(oc,"lf")==0)
+//								hx_uart_put(uart_id,"\n");
+//							else if(strcmp(oc,"crlf")==0)
+//								hx_uart_put(uart_id,"\r\n");
+//							else if(strcmp(oc,"null")==0){
+//								;
+//							}else ;
+//						}else{
+//							if(!hexmode)
+//								//∑«hexƒ£ Ωƒ¨»œWindows∏Ò Ω ‰≥ˆ
+//								hx_uart_put(uart_id,"\r\n");
+//						}
+//					}
+//				}while(res>=0);
+//				continue;
+//			}
+//			res = hxt_getc_noblock(&c);
+//			if(res==0){
+//config:
+//				if(c==''){
+//					hxt_puts("exit.");
+//					return 0;
+//				}else if(CTRL2CHAR(c)=='X'){//c==0x08){	//ctrl+x
+//					hexmode = hexmode?0:1;
+//					hxt_printf("HEX Mode %s\r\n",hexmode?"Enable":"Disable");
+//					continue;
+//				}else if(CTRL2CHAR(c)=='E'){//c==0x05){	//ctrl+e
+//					echo = echo?0:1;
+//					hxt_printf("ECHO Mode %s\r\n",echo?"Enable":"Disable");
+//					continue;
+//				}else if(CTRL2CHAR(c)=='O'){//c==0x0F){	//ctrl+o
+//					char ll[] = "cr,lf,crlf,null";
+//					next_value(&oc,ll);
+//					if(hexmode)
+//						hxt_printf("Output End CR/LF Mode : %s\r\n",
+//							oc?oc:"NULL");
+//					else
+//						hxt_printf("Output End CR/LF Mode : %s\r\n",
+//							oc?oc:"CRLR");
+//					continue;
+//				}else if(CTRL2CHAR(c)=='I'){//c==0x09){	//ctrl+i
+//					char ll[] = "lfcr,crlf";
+//					next_value(&ic,ll);
+//					hxt_printf("Input LF/CR Convert Mode : %s\r\n",
+//						ic?ic:"No Convert");
+//					continue;
+//				}else if(CTRL2CHAR(c)=='L'){//c==0x0C){	//ctrl+l
+//					linemode = linemode?0:1;
+//					hxt_printf("Line Mode %s\r\n",linemode?"Enable":"Disable");
+//					continue;
+//				}else if(IS_CTRL_CHAR(c)){
+//					hxt_printf("SET: %s, %s, %s, Output:%s, Input:%s \r\n",
+//						linemode?"LineMode:On":"LineMode:Off",
+//						hexmode?"Disp:Hex":"Disp:Binary",
+//						echo?"Echo:On":"Echo:Off",
+//						oc?oc:"NotAdd",
+//						ic?ic:"NotConvert"
+//						);
+////					hxt_printf("(Ctrl+X) Hex Mode: %s\r\n",hexmode?"Enable":"Disable");
+////					hxt_printf("(Ctrl+E) Echo Mode: %s\r\n",echo?"Enable":"Disable");
+////					hxt_printf("(Ctrl+O) Output Line End Mode: %s\r\n",oc?oc:"NULL");
+////					hxt_printf("(Ctrl+I) Input CRLR Convert Mode: %s\r\n",ic?ic:"No Convert");
+////					hxt_printf("(Ctrl+L) Line Mode: %s\r\n",linemode?"Enable":"Disable");
+//					continue;
+//				}
+//
+//				if(hexmode){
+//					if((c>='0' && c<='9')||(c>='A' && c<='F')||
+//						(c>='a' && c<='f'))
+//					{
+//						if(echo) hxt_putc(c);
+//						hex[n] = (unsigned char)c;
+//						n++;
+//						if(n==2){
+//							n=0;
+//							res = sscanf(hex,"%X",&c);
+//							if(res == 1){
+//								hx_uart_putc(uart_id,c);
+//								if(echo)hxt_putc(' ');
+//							}
+//						}
+//
+//					}
+//
+//				}else{
+//					hx_uart_putc(uart_id,c);
+//					if(echo) hxt_putc(c);
+//				}
+//
+//			}
+//		}
+//	}
+//	return 0;
+//bad_arg:
+//	hxt_puts("Usage:");
+//	hxt_puts("\t link <dev=devname>    —°‘Ò¡¨Ω”µΩµƒ…Ë±∏");
+//	hxt_puts("\t      [hexmode]                (Ctrl+X) π”√ Æ¡˘Ω¯÷∆ ‰»Î/œ‘ æƒ£ Ω");
+//	hxt_puts("\t      [echo]                   (Ctrl+E)ªÿœ‘∑¢ÀÕ◊÷∑˚");
+//	hxt_puts("\t      [oc=cr|lf|crlf|null]     (Ctrl+O) ‰≥ˆ◊™ªª,––ƒ©Œ≤ÃÌº”øÿ÷∆∑˚,Ωˆ––ƒ£ Ω”––ß");
+//	hxt_puts("\t      [ic=lfcr|crlf]           (Ctrl+I) ‰»Î◊™ªª,LF->LFCR|CR->CRLF,Ωˆ∂˛Ω¯÷∆ƒ£ Ω”––ß");
+//	hxt_puts("\t      [linemode]               (Ctrl+L) π”√––ƒ£ Ω, ‰»Îªª––¥•∑¢“ª¥Œ∑¢ÀÕ");
+//	hxt_puts("\t      [uart_param=115200,8n1]  …Ë÷√uart≤®Ãÿ¬ ");
+//	return -1;
+//}
+
+HXT_DEF_PROC(rc)
+{
+	int c;
+    int res;
+    char *dev,*param;
+    if(argc<2)
+        goto bad_arg;
+
+    dev = strtok(argv[1],":");
+    param = strtok(NULL,":");
+
+    HX_DEV d;
+    res = hx_open(dev,param,&d);
+    if(res)
+        return res;
+	do{
+		res = hxl_getc_noblock(&d,&c);
+		if(res==0){
+			hxt_printf("%02X",c);
 		}
-		hxt_printf("link to %s , %s , %s \r\n",
-			dev,uart_param?uart_param:("uart_param=" HXT_DEFAULT_UART_PARAM),
-		hexmode?"hex mode":"bin mode");
-		int c=0;
-		char hex[3]={0};
-		int n=0;
-		while(1){
-			//dev->console
-			res = hx_uart_getc_noblock(uart_id,&c);
-			if(res==0){
-				if(hexmode)
-					hxt_printf("%02X",c);
-				else{
-					hxt_putc(c);
-					if(ic){
-						if(c=='\r' && strcmp(ic,"crlf")==0)
-							hxt_putc('\n');
-						else if(c=='\n' && strcmp(ic,"lfcr")==0)
-							hxt_putc('\r');
-					}
-				}
-			}
-			//console->dev
-			if(linemode){
-				char *line = 0;
-				do{
-					res = hxt_gets_echo_noblock(&line);
-					if(IS_CTRL_CHAR(-res)){
-						c = -res;
-						goto config;
-					}
-					if(res>=0 && line){
-						if(hexmode){
-							int l = strlen(line);
-							char buff[MAX_CHARS_LINE/2];
-							hx_hexcode2bin(line,l,buff);
-							hx_uart_send(uart_id,buff,l>>1);
-							
-						}else{
-							hx_uart_put(uart_id,line);
-						}
-						if(oc){
-							if(strcmp(oc,"cr")==0)
-								hx_uart_put(uart_id,"\r");
-							else if(strcmp(oc,"lf")==0)
-								hx_uart_put(uart_id,"\n");
-							else if(strcmp(oc,"crlf")==0)
-								hx_uart_put(uart_id,"\r\n");
-							else if(strcmp(oc,"null")==0){
-								;
-							}else ;
-						}else{
-							if(!hexmode)
-								//∑«hexƒ£ Ωƒ¨»œWindows∏Ò Ω ‰≥ˆ
-								hx_uart_put(uart_id,"\r\n");
-						}
-					}
-				}while(res>=0);
-				continue;
-			}
-			res = hxt_getc_noblock(&c);
-			if(res==0){
+	}while(c!='\x03');
+    return 0;
+bad_arg:
+    hxt_puts("Usage:");
+    hxt_puts("\t wc   <char_device>[:<params>]  [hex_data]  —°‘Ò¡¨Ω”µΩµƒ◊÷∑˚…Ë±∏");
+    return -1;
+}
+
+HXT_DEF_PROC(wc)
+{
+    int res;
+    int l;
+    char *dev,*param,*dat;
+    if(argc<2)
+        goto bad_arg;
+
+    dev = strtok(argv[1],":");
+    param = strtok(NULL,":");
+    dat = argv[2];
+
+    HX_DEV d;
+    res = hx_open(dev,param,&d);
+    if(res)
+        return res;
+
+    char buff[512];
+    l = strlen(dat);
+    hx_hexcode2bin(dat,l,buff);
+    l /=2;
+    res = hx_write(&d,buff,l);
+    if(res!=l) {
+        hxt_printf("write error, return:%d\r\n",res);
+        return -1;
+    }
+    res = hx_read(&d,buff,512);
+    if(res>0) {
+        
+        hxt_printf("return: (%04X) %dBytes ",
+                   (int)(HX_MSB_B2W(buff)),res);
+        for(int i=0; i<res; i++) {
+            hxt_printf("%02hhX",buff[i]);
+        }
+        hxt_puts("");
+    }
+    return 0;
+bad_arg:
+    hxt_puts("Usage:");
+    hxt_puts("\t rc   <char_device>[:<params>]  —°‘Ò¡¨Ω”µΩµƒ◊÷∑˚…Ë±∏");
+    return -1;
+}
+
+static int _dev_open(char *dn, HX_DEV *d)
+{
+    const char *dev = strtok(dn,":");
+    const char *param = strtok(NULL,":");
+    return hx_open(dev,param,d);
+}
+
+HXT_DEF_PROC(lk)
+{
+    int res;
+    HX_DEV d;
+    int hexmode = NULL;
+    int echo = NULL;
+    char *oc = NULL;
+    char *ic = NULL;
+    int linemode = NULL;
+    char *dev = argv[1];
+	int c=0;
+    char hex[3]= {0};
+    int n=0;
+    if(argc<2)
+        goto bad_arg;
+    res = _dev_open(dev,&d);
+    if(res)
+        return -1;
+    hx_get_arg_bool(argc-2,argv+2,"hexmode",&hexmode);
+    hx_get_arg_bool(argc-2,argv+2,"echo",&echo);
+    hx_get_arg(argc-2,argv+2,"ic",&ic);
+    hx_get_arg(argc-2,argv+2,"oc",&oc);
+    hx_get_arg_bool(argc-2,argv+2,"linemode",&linemode);
+
+    while(1) {
+//dev->console
+        res = hxl_getc_noblock(&d,&c);
+        if(res==0) {
+            if(hexmode)
+                hxt_printf("%02X",c);
+            else {
+                hxt_putc(c);
+                if(ic) {
+                    if(c=='\r' && strcmp(ic,"crlf")==0)
+                        hxt_putc('\n');
+                    else if(c=='\n' && strcmp(ic,"lfcr")==0)
+                        hxt_putc('\r');
+                }
+            }
+        }
+//console->dev
+        if(linemode) {
+            char *line = 0;
+            do {
+                res = hxt_gets_echo_noblock(&line);
+                if(IS_CTRL_CHAR(-res)) {
+                    c = -res;
+                    goto config;
+                }
+                if(res>=0 && line) {
+                    if(hexmode) {
+                        int l = strlen(line);
+                        char buff[MAX_CHARS_LINE/2];
+                        hx_hexcode2bin(line,l,buff);
+                        hxl_send(&d,buff,l>>1);
+
+                    } else {
+                        hxl_put(&d,line);
+                    }
+                    if(oc) {
+                        if(strcmp(oc,"cr")==0)
+                            hxl_put(&d,"\r");
+                        else if(strcmp(oc,"lf")==0)
+                            hxl_put(&d,"\n");
+                        else if(strcmp(oc,"crlf")==0)
+                            hxl_put(&d,"\r\n");
+                        else if(strcmp(oc,"null")==0) {
+                            ;
+                        } else ;
+                    } else {
+                        if(!hexmode)
+                            //∑«hexƒ£ Ωƒ¨»œWindows∏Ò Ω ‰≥ˆ
+                            hxl_put(&d,"\r\n");
+                    }
+                }
+            } while(res>=0);
+            continue;
+        }
+        res = hxt_getc_noblock(&c);
+        if(res==0) {
 config:
-				if(c==''){
-					hxt_puts("exit.");
-					return 0;
-				}else if(CTRL2CHAR(c)=='X'){//c==0x08){	//ctrl+x
-					hexmode = hexmode?0:1;
-					hxt_printf("HEX Mode %s\r\n",hexmode?"Enable":"Disable");
-					continue;
-				}else if(CTRL2CHAR(c)=='E'){//c==0x05){	//ctrl+e
-					echo = echo?0:1;
-					hxt_printf("ECHO Mode %s\r\n",echo?"Enable":"Disable");
-					continue;
-				}else if(CTRL2CHAR(c)=='O'){//c==0x0F){	//ctrl+o
-					char ll[] = "cr,lf,crlf,null";
-					next_value(&oc,ll);
-					if(hexmode)
-						hxt_printf("Output End CR/LF Mode : %s\r\n",
-							oc?oc:"NULL");
-					else
-						hxt_printf("Output End CR/LF Mode : %s\r\n",
-							oc?oc:"CRLR");
-					continue;
-				}else if(CTRL2CHAR(c)=='I'){//c==0x09){	//ctrl+i
-					char ll[] = "lfcr,crlf";
-					next_value(&ic,ll);
-					hxt_printf("Input LF/CR Convert Mode : %s\r\n",
-						ic?ic:"No Convert");
-					continue;	
-				}else if(CTRL2CHAR(c)=='L'){//c==0x0C){	//ctrl+l
-					linemode = linemode?0:1;
-					hxt_printf("Line Mode %s\r\n",linemode?"Enable":"Disable");
-					continue;
-				}else if(IS_CTRL_CHAR(c)){
-					hxt_printf("SET: %s, %s, %s, Output:%s, Input:%s \r\n",
-						linemode?"LineMode:On":"LineMode:Off",
-						hexmode?"Disp:Hex":"Disp:Binary",
-						echo?"Echo:On":"Echo:Off",
-						oc?oc:"NotAdd",
-						ic?ic:"NotConvert"
-						);
+            if(c=='') {
+                hxt_puts("exit.");
+                return 0;
+            } else if(CTRL2CHAR(c)=='X') { //c==0x08){	//ctrl+x
+                hexmode = hexmode?0:1;
+                hxt_printf("HEX Mode %s\r\n",hexmode?"Enable":"Disable");
+                continue;
+            } else if(CTRL2CHAR(c)=='E') { //c==0x05){	//ctrl+e
+                echo = echo?0:1;
+                hxt_printf("ECHO Mode %s\r\n",echo?"Enable":"Disable");
+                continue;
+            } else if(CTRL2CHAR(c)=='O') { //c==0x0F){	//ctrl+o
+                char ll[] = "cr,lf,crlf,null";
+                next_value(&oc,ll);
+                if(hexmode)
+                    hxt_printf("Output End CR/LF Mode : %s\r\n",
+                               oc?oc:"NULL");
+                else
+                    hxt_printf("Output End CR/LF Mode : %s\r\n",
+                               oc?oc:"CRLR");
+                continue;
+            } else if(CTRL2CHAR(c)=='I') { //c==0x09){	//ctrl+i
+                char ll[] = "lfcr,crlf";
+                next_value(&ic,ll);
+                hxt_printf("Input LF/CR Convert Mode : %s\r\n",
+                           ic?ic:"No Convert");
+                continue;
+            } else if(CTRL2CHAR(c)=='L') { //c==0x0C){	//ctrl+l
+                linemode = linemode?0:1;
+                hxt_printf("Line Mode %s\r\n",linemode?"Enable":"Disable");
+                continue;
+            } else if(IS_CTRL_CHAR(c)) {
+                hxt_printf("SET: %s, %s, %s, Output:%s, Input:%s \r\n",
+                           linemode?"LineMode:On":"LineMode:Off",
+                           hexmode?"Disp:Hex":"Disp:Binary",
+                           echo?"Echo:On":"Echo:Off",
+                           oc?oc:"NotAdd",
+                           ic?ic:"NotConvert"
+                          );
 //					hxt_printf("(Ctrl+X) Hex Mode: %s\r\n",hexmode?"Enable":"Disable");
 //					hxt_printf("(Ctrl+E) Echo Mode: %s\r\n",echo?"Enable":"Disable");
 //					hxt_printf("(Ctrl+O) Output Line End Mode: %s\r\n",oc?oc:"NULL");
 //					hxt_printf("(Ctrl+I) Input CRLR Convert Mode: %s\r\n",ic?ic:"No Convert");
 //					hxt_printf("(Ctrl+L) Line Mode: %s\r\n",linemode?"Enable":"Disable");
-					continue;
-				}
-					
-				if(hexmode){
-					if((c>='0' && c<='9')||(c>='A' && c<='F')||
-						(c>='a' && c<='f'))
-					{
-						if(echo) hxt_putc(c);
-						hex[n] = (unsigned char)c;
-						n++;
-						if(n==2){
-							n=0;
-							res = sscanf(hex,"%X",&c);
-							if(res == 1){
-								hx_uart_putc(uart_id,c);
-								if(echo)hxt_putc(' ');
-							}
-						}
-						
-					}
-					
-				}else{
-					hx_uart_putc(uart_id,c);
-					if(echo) hxt_putc(c);
-				}
-				
-			}
-		}
-	}
-	return 0;
+                continue;
+            }
+
+            if(hexmode) {
+                if((c>='0' && c<='9')||(c>='A' && c<='F')||
+                        (c>='a' && c<='f'))
+                {
+                    if(echo) hxt_putc(c);
+                    hex[n] = (unsigned char)c;
+                    n++;
+                    if(n==2) {
+                        n=0;
+                        res = sscanf(hex,"%X",&c);
+                        if(res == 1) {
+                            hxl_putc(&d,c);
+                            if(echo)hxt_putc(' ');
+                        }
+                    }
+
+                }
+
+            } else {
+                hxl_putc(&d,c);
+                if(echo) hxt_putc(c);
+            }
+
+        }
+    }
+    //return 0;
 bad_arg:
-	hxt_puts("Usage:");
-	hxt_puts("\t link <dev=devname>    —°‘Ò¡¨Ω”µΩµƒ…Ë±∏");
-	hxt_puts("\t      [hexmode]                (Ctrl+X) π”√ Æ¡˘Ω¯÷∆ ‰»Î/œ‘ æƒ£ Ω");
-	hxt_puts("\t      [echo]                   (Ctrl+E)ªÿœ‘∑¢ÀÕ◊÷∑˚");
-	hxt_puts("\t      [oc=cr|lf|crlf|null]     (Ctrl+O) ‰≥ˆ◊™ªª,––ƒ©Œ≤ÃÌº”øÿ÷∆∑˚,Ωˆ––ƒ£ Ω”––ß");
-	hxt_puts("\t      [ic=lfcr|crlf]           (Ctrl+I) ‰»Î◊™ªª,LF->LFCR|CR->CRLF,Ωˆ∂˛Ω¯÷∆ƒ£ Ω”––ß");
-	hxt_puts("\t      [linemode]               (Ctrl+L) π”√––ƒ£ Ω, ‰»Îªª––¥•∑¢“ª¥Œ∑¢ÀÕ");
-	hxt_puts("\t      [uart_param=115200,8n1]  …Ë÷√uart≤®Ãÿ¬ ");
-	return -1;
+    hxt_puts("Usage:");
+    hxt_puts("\t lk   <char_device>[:<dev_param>]  [options ...]  —°‘Ò¡¨Ω”µΩµƒ◊÷∑˚…Ë±∏");
+    hxt_puts("\t options: ");
+    hxt_puts("\t      [hexmode]                (Ctrl+X) π”√ Æ¡˘Ω¯÷∆ ‰»Î/œ‘ æƒ£ Ω");
+    hxt_puts("\t      [echo]                   (Ctrl+E)ªÿœ‘∑¢ÀÕ◊÷∑˚");
+    hxt_puts("\t      [oc=cr|lf|crlf|null]     (Ctrl+O) ‰≥ˆ◊™ªª,––ƒ©Œ≤ÃÌº”øÿ÷∆∑˚,Ωˆ––ƒ£ Ω”––ß");
+    hxt_puts("\t      [ic=lfcr|crlf]           (Ctrl+I) ‰»Î◊™ªª,LF->LFCR|CR->CRLF,Ωˆ∂˛Ω¯÷∆ƒ£ Ω”––ß");
+    hxt_puts("\t      [linemode]               (Ctrl+L) π”√––ƒ£ Ω, ‰»Îªª––¥•∑¢“ª¥Œ∑¢ÀÕ");
+    return -1;
 }
 
-struct DEV_FILE_T
-{
-	const char *name;
-	int (*operate)(int rwc, int len, void* buf);
-};
-
-const struct DEV_FILE_T dev_file_list[] = 
-{
-	{"null",   NULL,},
-	//{"ne4110", ne4110_operate,},
-};
 HXT_DEF_PROC(write)
 {
-	int res=0;
-	char *dev = NULL;
-	char *asc = NULL;
-	char *hex = NULL;
-	char *wc = NULL;
-	char *rc = NULL;
-	HX_GET_ARG(dev);
-	HX_GET_ARG(hex);
-	HX_GET_ARG(asc);
-	HX_GET_ARG(wc);
-	HX_GET_ARG(rc);
-	int size = sizeof(dev_file_list)/sizeof(dev_file_list[0]);
-	if(!dev || (!asc || (asc ==hex)))
-		goto bad_arg;
-	
-	const struct DEV_FILE_T *p;
-	foreach(dev_file_list,size,p){
-		if(strcmp(p->name,dev)==0){
-			char buff[1024];
-			int l;
-			if(asc){
-				l = strlen(asc);
-				memcpy(buff,asc,l);
-			}else{
-				l = strlen(hex);
-				hx_hexcode2bin(hex,l,buff);
-				l >>=1;
-			}
-			if(wc){
-				if(strcmp(wc,"lf")==0){
-					buff[l++] = '\n';
-				}else if(strcmp(wc,"cr")==0){
-					buff[l++] = '\r';
-				} else if(strcmp(wc,"crlf")==0){
-					buff[l++] = '\r';
-					buff[l++] = '\n';
-				}
-			}
-			res = p->operate(1,l,buff);
-			hxt_printf("write %d bytes.\r\n",l);
-			if(res>0){
-				char sres[1024];
-				if(rc && strcmp(rc,"hex")==0){
-					hx_dumphex2str(buff,res,sres);
-				}else{
-					memcpy(sres,buff,res);
-					sres[res] = 0;
-				}
-				hxt_printf("return %d Bytes [%s]\r\n",res,sres);
-			}else{
-				hxt_printf("return Null\r\n");
-			}
-			return 0;
-		}
-	}
-	hxt_puts("no this device file.");
-	return 0;
-bad_arg:
-	hxt_puts("Usage:");
-	hxt_puts("\t write <dev=devname> <asc=data|hex=data>\\");
-	hxt_puts("\t       <wc=cr|lf|crlf> <rc=asc|hex>");
-	return -1;
+//	int res=0;
+//	char *dev = NULL;
+//	char *asc = NULL;
+//	char *hex = NULL;
+//	char *wc = NULL;
+//	char *rc = NULL;
+//	HX_GET_ARG(dev);
+//	HX_GET_ARG(hex);
+//	HX_GET_ARG(asc);
+//	HX_GET_ARG(wc);
+//	HX_GET_ARG(rc);
+//	int size = sizeof(dev_file_list)/sizeof(dev_file_list[0]);
+//	if(!dev || (!asc || (asc ==hex)))
+//		goto bad_arg;
+//
+//	const struct DEV_FILE_T *p;
+//	foreach(dev_file_list,size,p){
+//		if(strcmp(p->name,dev)==0){
+//			char buff[1024];
+//			int l;
+//			if(asc){
+//				l = strlen(asc);
+//				memcpy(buff,asc,l);
+//			}else{
+//				l = strlen(hex);
+//				hx_hexcode2bin(hex,l,buff);
+//				l >>=1;
+//			}
+//			if(wc){
+//				if(strcmp(wc,"lf")==0){
+//					buff[l++] = '\n';
+//				}else if(strcmp(wc,"cr")==0){
+//					buff[l++] = '\r';
+//				} else if(strcmp(wc,"crlf")==0){
+//					buff[l++] = '\r';
+//					buff[l++] = '\n';
+//				}
+//			}
+//			res = p->operate(1,l,buff);
+//			hxt_printf("write %d bytes.\r\n",l);
+//			if(res>0){
+//				char sres[1024];
+//				if(rc && strcmp(rc,"hex")==0){
+//					hx_dumphex2str(buff,res,sres);
+//				}else{
+//					memcpy(sres,buff,res);
+//					sres[res] = 0;
+//				}
+//				hxt_printf("return %d Bytes [%s]\r\n",res,sres);
+//			}else{
+//				hxt_printf("return Null\r\n");
+//			}
+//			return 0;
+//		}
+//	}
+//	hxt_puts("no this device file.");
+//	return 0;
+//bad_arg:
+//	hxt_puts("Usage:");
+//	hxt_puts("\t write <dev=devname> <asc=data|hex=data>\\");
+//	hxt_puts("\t       <wc=cr|lf|crlf> <rc=asc|hex>");
+    return -1;
 }
 
 HXT_DEF_PROC(list)
 {
-	int size = sizeof(dev_file_list)/sizeof(dev_file_list[0]);
-	const struct DEV_FILE_T *p;
-	foreach(dev_file_list,size,p){
-		hxt_puts(p->name);
-	}
-	return 0;
+    int i;
+    const DEV_TBL_T *devtbl = hx_get_devtbl();
+    int devtbl_count = hx_devtbl_count();
+    for(i=0; i<devtbl_count; i++) {
+        const DEV_T *device = devtbl[i].dev;
+        int type = devtbl[i].dev_type;
+        hxt_printf("%c\t%s\r\n",(type==REG_CHAR)?'c':'b',device->name);
+    }
+    return 0;
 }
 
 HXT_DEF_PROC(reset)
 {
-	((void (*)(void))0)();
-	return 0;
+    ((void (*)(void))0)();
+    return 0;
 }
 
 HXT_DEF_PROC(clear)
 {
-	hxt_put(VT100_CLR);
-	return 0;
+    hxt_put(VT100_CLR);
+    return 0;
 }
 HXT_DEF_PROC(cr)
 {
-	hxt_put(VT100_CLR);
-	hxt_putc(' ');	//wait send complete
-	((void (*)(void))0)();
-	return 0;
+    hxt_put(VT100_CLR);
+    hxt_putc(' ');	//wait send complete
+    ((void (*)(void))0)();
+    return 0;
 }
-int io_mode_ctrl(int argc, char *argv[])
-{
-	int res;
-	if(argc<3)
-		goto bad;
-	unsigned x,y,v;
-	res = sscanf(argv[1],"p%u.%u",&x,&y);
-	if(res!=2) goto bad;
-	res = sscanf(argv[2],"%u",&v);
-	if(res!=1) goto bad;
-	if(strcmp(argv[0],"ioctrl")==0)
-		brd_ioctrl(x,(unsigned)(1<<y),v);
-	else if(strcmp(argv[0],"iomode")==0)
-		brd_iomode(x,(unsigned)(1<<y),(IOMODE_T)v);
-	else
-		goto bad;
-	return 0;
-bad:
-	hxt_puts("Usage:");
-	hxt_printf("\t %s p<x>.<y> <val>\r\n",argv[0]);
-	return -1;
-}
-	
-HXT_DEF_PROC(ioctrl)
-{
-	return io_mode_ctrl(argc,argv);
-}
-int io_set_clr(int argc, char *argv[], int v)
-{
-	int res;
-	if(argc<2)
-		goto bad;
-	unsigned x,y;
-	res = sscanf(argv[1],"p%u.%u",&x,&y);
-	if(res!=2) goto bad;
-	brd_ioctrl(x,(unsigned)(1<<y),v);
-	return 0;
-bad:
-	hxt_puts("Usage:");
-	hxt_printf("\t %s p<x>.<y>\r\n",argv[0]);
-	return -1;
-}
-HXT_DEF_PROC(iomode)
-{
-	return io_mode_ctrl(argc,argv);
-}
-HXT_DEF_PROC(ioclr)
-{
-	return io_set_clr(argc,argv,0);
-}
-HXT_DEF_PROC(ioset)
-{
-	return io_set_clr(argc,argv,1);
-}
+//int io_mode_ctrl(int argc, char *argv[])
+//{
+//    int res;
+//    if(argc<3)
+//        goto bad;
+//    unsigned x,y,v;
+//    res = sscanf(argv[1],"p%u.%u",&x,&y);
+//    if(res!=2) goto bad;
+//    res = sscanf(argv[2],"%u",&v);
+//    if(res!=1) goto bad;
+//    if(strcmp(argv[0],"ioctrl")==0)
+//        brd_ioctrl(x,(unsigned)(1<<y),v);
+//    else if(strcmp(argv[0],"iomode")==0)
+//        brd_iomode(x,(unsigned)(1<<y),(IOMODE_T)v);
+//    else
+//        goto bad;
+//    return 0;
+//bad:
+//    hxt_puts("Usage:");
+//    hxt_printf("\t %s p<x>.<y> <val>\r\n",argv[0]);
+//    return -1;
+//}
 
-HXT_DEF_PROC(ioval)
-{
-	int res;
-	if(argc<2)
-		goto bad;
-	unsigned x,y,v;
-	res = sscanf(argv[1],"p%u.%u",&x,&y);
-	if(res==1){
-		v = brd_ioval(x);
-		hxt_printf("res=%08X\r\n",v);
-	}else if(res==2){
-		v = brd_ioval(x);
-		v = (v&(1<<y))?1:0;
-		hxt_printf("res=%x\r\n",v);
-	}else{
-		goto bad;
-	}
-	
-	return 0;
-bad:
-	hxt_puts("Usage:");
-	hxt_puts("\t ioval p<x>.[y]");
-	return -1;
-}
+//HXT_DEF_PROC(ioctrl)
+//{
+//    return io_mode_ctrl(argc,argv);
+//}
+//int io_set_clr(int argc, char *argv[], int v)
+//{
+//    int res;
+//    if(argc<2)
+//        goto bad;
+//    unsigned x,y;
+//    res = sscanf(argv[1],"p%u.%u",&x,&y);
+//    if(res!=2) goto bad;
+//    brd_ioctrl(x,(unsigned)(1<<y),v);
+//    return 0;
+//bad:
+//    hxt_puts("Usage:");
+//    hxt_printf("\t %s p<x>.<y>\r\n",argv[0]);
+//    return -1;
+//}
+//HXT_DEF_PROC(iomode)
+//{
+//    return io_mode_ctrl(argc,argv);
+//}
+//HXT_DEF_PROC(ioclr)
+//{
+//    return io_set_clr(argc,argv,0);
+//}
+//HXT_DEF_PROC(ioset)
+//{
+//    return io_set_clr(argc,argv,1);
+//}
+
+//HXT_DEF_PROC(ioval)
+//{
+//    int res;
+//    if(argc<2)
+//        goto bad;
+//    unsigned x,y,v;
+//    res = sscanf(argv[1],"p%u.%u",&x,&y);
+//    if(res==1) {
+//        v = brd_ioval(x);
+//        hxt_printf("res=%08X\r\n",v);
+//    } else if(res==2) {
+//        v = brd_ioval(x);
+//        v = (v&(1<<y))?1:0;
+//        hxt_printf("res=%x\r\n",v);
+//    } else {
+//        goto bad;
+//    }
+
+//    return 0;
+//bad:
+//    hxt_puts("Usage:");
+//    hxt_puts("\t ioval p<x>.[y]");
+//    return -1;
+//}
 const struct HXT_CMD_T g_cmd_list[] = {
-	{"help",	hxt_help,		"œ‘ æ∞Ô÷˙–≈œ¢"},
-	{"?",		hxt_help,		"œ‘ æ∞Ô÷˙–≈œ¢"},
-	{"clear",	hxt_clear,		"«Â∆¡"},
-	{"cr",		hxt_cr,			"«Â∆¡≤¢÷ÿ∆Ù"},
-	{"version",	hxt_version,	"œ‘ æ∞Ê±æ"},
-	{"link",	hxt_link,		"¡¨Ω”µΩ◊÷∑˚…Ë±∏"},
-	{"devcfg",	hxt_devcfg,		"∏¸∏ƒ…Ë±∏≤Œ ˝"},
-	{"write",	hxt_write,		"–¥√¸¡Ó"},
+    {"help",	hxt_help,		"œ‘ æ∞Ô÷˙–≈œ¢"},
+    {"?",			hxt_help,			"œ‘ æ∞Ô÷˙–≈œ¢"},
+    {"clear",	hxt_clear,		"«Â∆¡"},
+    {"cr",		hxt_cr,			"«Â∆¡≤¢÷ÿ∆Ù"},
+    {"version",	hxt_version,	"œ‘ æ∞Ê±æ"},
+//	{"link",	hxt_link,		"¡¨Ω”µΩ◊÷∑˚…Ë±∏"},
+    {"lk",		hxt_lk,			"¡¨Ω”µΩ◊÷∑˚…Ë±∏"},
+//	{"devcfg",	hxt_devcfg,		"∏¸∏ƒ…Ë±∏≤Œ ˝"},
+    {"write",	hxt_write,		"–¥√¸¡Ó"},
 //	{"read",	hxt_read,		"∂¡√¸¡Ó"},
-	{"ls",		hxt_list,		"¡–≥ˆŒƒº˛¡–±Ì"},
-	{"reset",	hxt_reset,		"∏¥Œª"},
-	
-	{"ioctrl",	hxt_ioctrl,		"I/O ‰≥ˆøÿ÷∆"},
-	{"iomode",	hxt_iomode,		"I/Oƒ£ Ωøÿ÷∆"},
-	{"ioval",	hxt_ioval,		"I/O∂¡»° ‰»Î"},
-	{"ioclr",	hxt_ioclr,		"I/O ‰≥ˆ0"},
-	{"ioset",	hxt_ioset,		"I/O ‰≥ˆ1"},
-	
-//	{"psam",	hxt_psam,		"∑¢ÀÕPSAMø®√¸¡Ó"},
+    {"ls",		hxt_list,		"¡–≥ˆŒƒº˛¡–±Ì"},
+    {"reset",	hxt_reset,		"∏¥Œª"},
+
+//    {"ioctrl",	hxt_ioctrl,		"I/O ‰≥ˆøÿ÷∆"},
+//    {"iomode",	hxt_iomode,		"I/Oƒ£ Ωøÿ÷∆"},
+//    {"ioval",	hxt_ioval,		"I/O∂¡»° ‰»Î"},
+//    {"ioclr",	hxt_ioclr,		"I/O ‰≥ˆ0"},
+//    {"ioset",	hxt_ioset,		"I/O ‰≥ˆ1"},
+
+    {"wc",		hxt_wc,			"write char device"},
+	{"rc",		hxt_rc,			"read char device"},
 //	{"cpu",		hxt_psam,		"∑¢ÀÕCPUCARDø®√¸¡Ó"},
 //	{"flash",	hxt_flash,		"≤Ÿ◊˜falsh: r/w/e"},
-	{"param",	hxt_param,		"∂¡»°…Ë±∏≤Œ ˝"},
+    {"param",	hxt_param,		"∂¡»°…Ë±∏≤Œ ˝"},
 };
 
 int g_cmd_count = sizeof(g_cmd_list)/sizeof(g_cmd_list[0]);

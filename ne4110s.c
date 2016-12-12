@@ -1,10 +1,18 @@
 #include "hx_utils.h"
-#include "hx_board.h"
 #include "string.h"
 #include "stdio.h"
 
 /*
 	NE4110 Module Config On Factory
+	First,Connect NE4110 module config serial port to PC, like below
+		NE4110      PC
+		J2: P1 <--> TXD
+		    P2 <--> RXD
+		    P13 <--> +5V
+		    P14 <--> GND
+	Than Open Serial Tool config whit bps 19200,8N1.
+	config the module ip/mask/gw suitably, and than, 
+	use website browser visit it to config other properties.
 	1. Serial Settings -> Port1
 		Baud Rate : 57600
 		Data Bits : 8
@@ -15,6 +23,7 @@
 	2. Serial Command Mode :
 		Trigger Setting : SW Trigger
 		SW Trigger Character : 23 23 23
+	Finally,Save and reset module.
 */
 
 static char * ne4110_read_cmd(const char *op,

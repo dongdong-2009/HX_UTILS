@@ -3,8 +3,8 @@
 #include "./cpu/lpc2368_reg.h"
 #include "./cpu/lpc2368_conf.h"
 
-extern void UART_RX_BYTE(int id, int data);
-extern void UART_TX_BYTE(int id);
+__weak void brd_uart_rx_byte(int id, int data){}
+__weak void brd_uart_tx_byte(int id){}
 
 
 
@@ -56,6 +56,10 @@ __weak void cpu_ioctrl(int port,uint pin,int val)
 		*(iotbl[port].IOCLR) |= pin;
 	else
 		*(iotbl[port].IOSET) |= pin;
+}
+__weak void cpu_ioout(int port,uint val)
+{
+	*(iotbl[port].IOPIN) = val;
 }
 __weak void cpu_ioclr(int port,uint pin)
 {
@@ -209,12 +213,12 @@ static void UART0Handler (void) __irq
         }
         if ( LSRValue & LSR_RDR )	/* Receive Data Ready */
         {
-			UART_RX_BYTE(0,U0RBR);
+			brd_uart_rx_byte(0,U0RBR);
         }
     }
     else if ( IIRValue == IIR_RDA )	/* Receive Data Available */
     {
-		UART_RX_BYTE(0,U0RBR);
+		brd_uart_rx_byte(0,U0RBR);
 
     }
     else if ( IIRValue == IIR_CTI )	/* Character timeout indicator */
@@ -230,7 +234,7 @@ static void UART0Handler (void) __irq
 		valid data in U1THR or not */
         if ( LSRValue & LSR_THRE )
         {
-			UART_TX_BYTE(0);
+			brd_uart_tx_byte(0);
 
         }
     }
@@ -262,13 +266,13 @@ static void UART1Handler (void) __irq
         }
         if ( LSRValue & LSR_RDR )	/* Receive Data Ready */
         {
-			UART_RX_BYTE(1,U1RBR);
+			brd_uart_rx_byte(1,U1RBR);
             
         }
     }
     else if (IIRValue==IIR_RDA )	/* Receive Data Available */
     {
-		UART_RX_BYTE(1,U1RBR);       
+		brd_uart_rx_byte(1,U1RBR);       
     }
     else if ( IIRValue == IIR_CTI )	/* Character timeout indicator */
     {
@@ -283,7 +287,7 @@ static void UART1Handler (void) __irq
 		valid data in U0THR or not */
         if ( LSRValue & LSR_THRE )
         {
-           UART_TX_BYTE(1);
+           brd_uart_tx_byte(1);
         }
     }
     //  IDISABLE;
@@ -316,12 +320,12 @@ static void UART2Handler (void) __irq
         }
         if ( LSRValue & LSR_RDR )	/* Receive Data Ready */
         {
-            UART_RX_BYTE(2,U2RBR);
+            brd_uart_rx_byte(2,U2RBR);
         }
     }
     else if ( IIRValue == IIR_RDA )	/* Receive Data Available */
     {
-		UART_RX_BYTE(2,U2RBR);
+		brd_uart_rx_byte(2,U2RBR);
        
     }
     else if ( IIRValue == IIR_CTI )	/* Character timeout indicator */
@@ -337,7 +341,7 @@ static void UART2Handler (void) __irq
 		valid data in U0THR or not */
         if ( LSRValue & LSR_THRE )
         {
-		UART_TX_BYTE(2);
+		brd_uart_tx_byte(2);
         }
     }
     //  IDISABLE;
@@ -369,14 +373,14 @@ static void UART3Handler (void) __irq
         if ( LSRValue & LSR_RDR )	/* Receive Data Ready */
         {
 			int data = U3RBR;
-			UART_RX_BYTE(3,data);
+			brd_uart_rx_byte(3,data);
             
         }
     }
     else if ( IIRValue == IIR_RDA )	/* Receive Data Available */
     {
 		int data = U3RBR;
-		UART_RX_BYTE(3,data);
+		brd_uart_rx_byte(3,data);
        
     }
     else if ( IIRValue == IIR_CTI )	/* Character timeout indicator */
@@ -392,7 +396,7 @@ static void UART3Handler (void) __irq
 		valid data in U3THR or not */
         if ( LSRValue & LSR_THRE )
         {
-			UART_TX_BYTE(3);
+			brd_uart_tx_byte(3);
         }
     }
     //  IDISABLE;

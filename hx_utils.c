@@ -1,38 +1,51 @@
 #include "hx_utils.h"
-#include "hx_board.h"
 #include "string.h"
 #include "stdio.h"
-
-uint32_t g_fpclk = 0;
-uint32_t hx_get_gpclk(void)
-{
-	if(g_fpclk==0){
-		HX_DBG_PRINTLN("File:%s Line:%s Func:%s : FPCLK NOT SET",
-			__FILE__,__LINE__,__FUNCTION__);
-		while(1);
-	}
-	return g_fpclk;
-}
-void hx_utils_init(int pclk)
+#include "hxd_param.h"
+#include "time.h"
+static volatile unsigned *g_pclock = 0;
+extern int brd_init(void);
+int hx_utils_init(void)
 {
 	int res;
-	g_fpclk = pclk;
-	hx_init_tickcount(g_fpclk);	
+	//register and open stdin/out/err, 
+	// please retarget stdio before this stage
+	// than debug io can be use.
+	hx_device_init();	
+	
+	extern const PARAM_DEV_T brd_params;
+	// init clock for tick count
+	hx_register_params(&brd_params);
+	HX_DEV params_d;
+	res = hx_open("param","",&params_d);
+	if(res==0){
+		char buff[24] = "clock";
+		res = hx_read(&params_d,buff,5);
+		if(res==0){
+			g_pclock = ((PARAM_DEV_T*)params_d.pdev)->tbl[params_d.offset].data;
+		}
+	}
+	hx_close(&params_d);
+	
+	//register and init board devices
 	res = brd_init();
 	if(res){
-		fprintf(stderr,"board init error %d\n",res);
+		HX_DBG_PRINTLN("board init error");
 	}
-	hxt_term_init();
-}
-
-void hx_init_tickcount(int pclk)
-{
-	cpu_init_tickcount_1m_by_pclk(pclk);
+	
+	//startup term app
+	res = hxt_term_init();
+	if(res)
+		return -3;
+	return 0;
 }
 
 uint32_t hx_get_tick_count(void)
 {
-	return cpu_get_tickcount();
+	if(g_pclock)
+		return *g_pclock;
+	HX_DBG_PRINTLN("ERROR: call %s",__FUNCTION__);
+	while(1);
 }
 
 int bcd2int(unsigned char bcd)
@@ -535,6 +548,54 @@ void* pk_get(void*from,int len,void* to)
     char *res = (char*)from;
     memcpy(to,from,len);
     return  res + len;
+}
+
+
+//------------------------------------------------------------------------------
+int ymd2days(int y,int m,int d)
+{
+	const int tbl[] = {
+		31,
+		31+28,
+		31+28+31,
+		31+28+31+30,
+		31+28+31+30+31,
+		31+28+31+30+31+30,
+		31+28+31+30+31+30+31,
+		31+28+31+30+31+30+31+31,
+		31+28+31+30+31+30+31+31+30,
+		31+28+31+30+31+30+31+31+30+31,
+		31+28+31+30+31+30+31+31+30+31+30,
+		31+28+31+30+31+30+31+31+30+31+30+31,
+	};
+	//if(y>1970)
+		y-=1970;
+	int f = y%4?0:1;
+	return (y * (365+f)) + (tbl[m]+(m>2?f:0)) + d;
+
+}
+long long ymdhms2sec(int y,int m,int d,int H,int M,int S)
+{
+	int ds = ymd2days(y,m,d);
+	return ds*3600*24+H*3600+M*60+S;
+}
+
+int ymdbcd2days(uint8_t *yyyymmdd)
+{
+	return ymd2days(
+			bcd2int(yyyymmdd[0])*100+bcd2int(yyyymmdd[1]),
+			bcd2int(yyyymmdd[2]),
+			bcd2int(yyyymmdd[3])
+	);
+}
+long long ymdhmsbcd2sec(uint8_t *yyyymmddHHMMSS)
+{
+	long long ds = ymdbcd2days(yyyymmddHHMMSS);
+	return ds*3600*24+ymdhms2sec(0,0,0,
+			bcd2int(yyyymmddHHMMSS[4]),
+			bcd2int(yyyymmddHHMMSS[5]),
+			bcd2int(yyyymmddHHMMSS[6])
+	);
 }
 
 /*

@@ -1,20 +1,21 @@
 /*
  * hx_term.h
  *
- *  Created on: 2016Äê7ÔÂ25ÈÕ
+ *  Created on: 2016å¹´7æœˆ25æ—¥
  *      Author: houxd
  */
 
 #ifndef _HX_TERM_H_
 #define _HX_TERM_H_
 
+#include "hx_device.h"
 
 //===========================================================
 // configurations
 //VT100 controls
 /* http://www.termsys.demon.co.uk/vtansi.htm */
 #define VT100_CLR		"[2J"
-//#define VT100_COLOR		"[BB;FFm"		//BB:40ºÚ41Éîºì42ÂÌÉ43»Æ
+//#define VT100_COLOR		"[BB;FFm"		//BB:40é»‘41æ·±çº¢42ç»¿ï¿½43é»„
 
 //home [1~
 //end  [4~
@@ -65,23 +66,26 @@ typedef int HXT_CMD_FUNC_T(int argc, char **argv);
 
 //==========================================================
 // apis
+
 /*
  * block into terminal mode
  */
-extern int hxt_term_run(int argc, char *argv[]);
+extern int hxt_term_run(void);
 
 extern int hxt_term_init(void);
 /*
  * noblock,polling once from input stream
  */
-extern int hxt_term_polling(void);
+extern int hxt_term_poll(void);
 
 /*
  * execute cmd directly.
  */
 extern int hxt_exec_cmd(const char *cmd);
 extern int hxt_printf(const char *fmt, ...);
+extern int hxt_fprintf(HX_DEV *d,const char *fmt, ...);
 extern int hxt_getc_noblock(int *c);
+
 /*
 	only two case can return :
 	<0:now is no char
@@ -114,12 +118,7 @@ struct HXT_CMD_T {
 };
 extern HXT_DEF_PROC(help);
 extern HXT_DEF_PROC(version);
-//========================================================
-// port
-extern void hxt_uart_enable_interrupt(int b);
-extern int __port_input_get_char(int *c);
-extern int __port_output_put_char(int c);
-extern void hxt_uart_rx_byte(unsigned int b);
+
 
 #define CTRL_BS			(0x7F)
 #define CTRL2CHAR(c)	(c+'@')	
@@ -135,20 +134,7 @@ extern void hxt_uart_rx_byte(unsigned int b);
 	Ctrl+J			0A		\r		Return
 */
 
-//========================================================
-//cmds
-typedef struct _DEV_PARAM_T {
-	const char *name;
-	const char *data_type;	
-	// <type>,<count>[,<spilt-chars>]
-	// "bin","bcd", "asc", "i32","i64","f32","f64"
-	// bin,2	AA55		"\xAA\x55"
-	// bcd,2,- "11-22"		"\x11\x22"
-	// asc,0	"houxd"		"houxd"
-	// asc,3	"abc"		"abc"
-	// i32		100			100
-	// ...
-	void *data;
-} DEV_PARAM_T;
+
+
 
 #endif /* SRC_HX_TERM_H_ */

@@ -8,18 +8,19 @@
 #ifndef __HX_DEBUG_H__
 #define __HX_DEBUG_H__
 
+#include "hx_utils.h"
 
 #ifdef __DEBUG__
 #define __HX_ENABLE_DEBUG__
 #endif
 
+/*
+	some times want disable a part of debug info. use this.
+*/
+#define	DISABLE_DEBUG_TAG		""
+
 #ifdef __HX_ENABLE_DEBUG__	
 
-/*
-	Debug serial data.
-*/
-//#define HX_DEBUG_SERIAL_INPUT			(0)
-//#define HX_DEBUG_SERIAL_OUTPUT		(0)
 
 /*
 	When the debug is enabled, 
@@ -27,8 +28,16 @@
 */
 #define	HX_OUTPUT_STATE_DEFAULT			(1)
 
-extern int HX_DBG_ENABLE(int en);
-extern int  HX_DBG_PRINT(const char *format, ...);
+//hx_term.c
+extern int g_enable_debug_output;
+extern int hx_printf(const char *fmt,...);
+extern int hx_dprintf(HX_DEV *d,const char *fmt,...);
+extern void hx_dbg(char ch,const char *fmt,...);
+extern void hx_dbgi(char ch,const char *fmt,...);
+extern void hx_dbge(char ch,const char *fmt,...);
+
+#define HX_DBG_ENABLE(en)		(g_enable_debug_output=en)
+#define HX_DBG_PRINT(...)		hx_printf(__VA_ARGS__)
 
 #define  HX_DBG_PRINTLN(...)			\
 	do{									\
@@ -56,6 +65,7 @@ do{																\
 }while(0)
 	
 #define HX_ASSERT(n)			do{	if(!(n)){ABORT(#n);} }while(0)
+
 #else
 
 #define  HX_DBG_ENABLE(...)	
@@ -157,7 +167,12 @@ do{																\
 	p += 4; \
 	PK_DEBUG_DWORD((p),(x));	\
 }	
-
+#define PK_ADD_DWORD_LSB(p,x)	\
+{\
+	HX_LSB_DW2B((x),(p)); \
+	p += 4; \
+	PK_DEBUG_DWORD((p),(x));	\
+}	
 
 
 

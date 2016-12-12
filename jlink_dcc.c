@@ -8,12 +8,6 @@
 #define __DCC_ENABLE_RETARGET__
 #endif
 
-#ifdef __DEBUG__
-//#define	printf(...)		do{printf(__VA_ARGS__);flush();}while(0)
-#else
-#define	printf(fmt,...)	
-#endif
-
 #if 0
 int main(void)
 {
@@ -335,9 +329,9 @@ int ferror(FILE *f) {
 #ifdef __DCC_ENABLE_RETARGET__
 //#pragma import(__use_no_semihosting_swi)
 int fgetc_noblock(FILE *f) {
-	(void)f;
 	int res;
 	int c;
+	(void)f;
 	res = jlink_dcc_getc(&c);
 	if(res)
 		return 0xffu & c;

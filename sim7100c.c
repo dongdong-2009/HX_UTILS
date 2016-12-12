@@ -1,5 +1,4 @@
 #include "hx_utils.h"
-#include "hx_board.h"
 #include "string.h"
 #include "stdio.h"
 
@@ -149,25 +148,25 @@ static const HX_ATARG_T defarg = {
 static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
 {
 	atc_default_init(this,pstep,arg);
-	#if defined(BRD_NIC_PWR) && defined(BRD_NIC_RST)
-		printf("sim7100c init.\n");
-		brd_ioctrl(BRD_NIC_PWR,1);	//default
-		brd_ioctrl(BRD_NIC_RST,1);
-		
-		brd_iomode(BRD_NIC_PWR,IM_OUT);	//output
-		brd_iomode(BRD_NIC_RST,IM_OUT);
-		
-		brd_ioctrl(BRD_NIC_PWR,0);	//power low 500
-		hx_delay_ms(500);
-		brd_ioctrl(BRD_NIC_PWR,1);
-		hx_delay_ms(1000);
-		brd_ioctrl(BRD_NIC_RST,0);	//rst low 500
-		hx_delay_ms(500);
-		brd_ioctrl(BRD_NIC_RST,1);
-		hx_delay_ms(1000);
-	#else
-		#error ***No Define Hardware Port, Might be not Work! 
-	#endif
+//	#if defined(BRD_NIC_PWR) && defined(BRD_NIC_RST)
+//		printf("sim7100c init.\n");
+//		brd_ioctrl(BRD_NIC_PWR,1);	//default
+//		brd_ioctrl(BRD_NIC_RST,1);
+//		
+//		brd_iomode(BRD_NIC_PWR,IM_OUT);	//output
+//		brd_iomode(BRD_NIC_RST,IM_OUT);
+//		
+//		brd_ioctrl(BRD_NIC_PWR,0);	//power low 500
+//		hx_delay_ms(500);
+//		brd_ioctrl(BRD_NIC_PWR,1);
+//		hx_delay_ms(1000);
+//		brd_ioctrl(BRD_NIC_RST,0);	//rst low 500
+//		hx_delay_ms(500);
+//		brd_ioctrl(BRD_NIC_RST,1);
+//		hx_delay_ms(1000);
+//	#else
+//		#error ***No Define Hardware Port, Might be not Work! 
+//	#endif
 	return 0;
 }
 

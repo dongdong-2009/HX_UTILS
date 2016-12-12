@@ -1,13 +1,12 @@
 #include "hx_utils.h"
-#include "hx_board.h"
 #include "stdio.h"
 #include "string.h"
 #include "stdarg.h"
 
-
-
+#define atport		(&g_at_uart)
 static HX_ATARG_T g_atarg = {0};
 HX_NIC_INFO_T g_nic_info = {0};
+
 
 
 void atc_get_arg(HX_ATARG_T *parg)
@@ -37,6 +36,7 @@ int atc_init(const struct HX_NIC_T *nic, int *pstep, HX_ATARG_T *arg)
 		return nic->init(nic,pstep,arg);
 	return 0;
 }
+
 void atc_reset(const struct HX_NIC_T *nic)
 {
 	if(nic->reset)
@@ -44,6 +44,7 @@ void atc_reset(const struct HX_NIC_T *nic)
 	else
 		nic->init(nic,0,NULL);
 }
+
 
 #define ATC_POLL_BUFSIZE		(4096)
 
@@ -58,7 +59,7 @@ void atc_reset(const struct HX_NIC_T *nic)
 	normal return number is the current step.
 	when all step continued , return sum of item of at_tbl.
 */
-int atc_poll(const struct HX_NIC_T *nic, int *pstep, void *msg)
+int atc_poll(const struct HX_NIC_T *nic, int *pstep, struct NET_PARAM_T *param)
 {
 	if(nic == NULL | pstep == NULL)
 		return -1;
@@ -87,14 +88,14 @@ int atc_poll(const struct HX_NIC_T *nic, int *pstep, void *msg)
 				*pstep = step;
                 return step;
             } else {
-                hx_uart_printf(UART_AT_PORT,"%s\r\n",at_tbl[step].cmd);
+                hxl_printf(&g_at_uart,"%s\r\n",at_tbl[step].cmd);
                 is_send = 1;
                 HX_DBG_PRINT("ATCMD_TX: [%s]\r\n",at_tbl[step].cmd);
             }
         } else if(at_tbl[step].callback) {	//has none, than callback
             memset(buff,0,buff_size);
-            at_tbl[step].callback(step,AT_PUT,buff,NULL);
-            hx_uart_printf(UART_AT_PORT,"%s\r\n",buff);
+            at_tbl[step].callback(step,AT_PUT,buff,param);
+            hxl_printf(&g_at_uart,"%s\r\n",buff);
             is_send = 1;
             HX_DBG_PRINT("ATCMD_TX: [%s]\r\n",buff);
         } else {
@@ -109,7 +110,7 @@ int atc_poll(const struct HX_NIC_T *nic, int *pstep, void *msg)
         }
     }
 again:
-    res = hx_uart_gets_noblock(UART_AT_PORT,buff,buff_size);
+    res = hxl_gets_noblock(&g_at_uart,buff,buff_size);
     if(res>=0) {
         int get_ok = 0;
         HX_DBG_PRINT("\tRX: [%s]\r\n",buff);
@@ -118,7 +119,7 @@ again:
                 strcmp(buff,at_tbl[step].want_res)==0) {
             get_ok = 1;
         } else if(at_tbl[step].callback) {
-            res = at_tbl[step].callback(step,AT_GET,s,msg);
+            res = at_tbl[step].callback(step,AT_GET,s,param);
             if(res == 0)
                 get_ok = 1;
         }
@@ -152,62 +153,60 @@ again:
         }
     }
 	
-	if(step < nic->at_tbl_count){
-		*pstep = step;
-		return step;
-	}else{
-		return -1;
-	}
+	//if(step < nic->at_tbl_count){
+	*pstep = step;
+	return step;
+	//}else{
+	//	return -1;
+	//}
 }
 
 int atc_getc_noblock(int *pc)
 {
-    return hx_uart_getc_noblock(UART_AT_PORT,pc);
+    return hxl_getc_noblock(&g_at_uart,pc);
 }
 int atc_getc_timeout(int *pc,int t)
 {
-    return hx_uart_getc_timeout(UART_AT_PORT,pc,t);
+    return hxl_getc_timeout(&g_at_uart,pc,t);
 }
 int atc_getc_block(int *pc)
 {
-    return hx_uart_getc_block(UART_AT_PORT);
+    return hxl_getc_block(&g_at_uart);
 }
 int atc_gets_noblock(char *bf,int bl)
 {
-    return hx_uart_gets_noblock(UART_AT_PORT,bf,bl);
+    return hxl_gets_noblock(&g_at_uart,bf,bl);
 }
 int atc_gets_timeout(char *bf,int bl,int t)
 {  
-	return hx_uart_gets_timeout(UART_AT_PORT,bf,bl,t);
+	return hxl_gets_timeout(&g_at_uart,bf,bl,t);
 }
 void atc_gets_block(char *bf, int bl)
 {   
-	 hx_uart_gets_block(UART_AT_PORT,bf,bl);
+	 hxl_gets_block(&g_at_uart,bf,bl);
 }
 void atc_rxclr(void)
 {
-     hx_uart_atc_rxclr(UART_AT_PORT);
+     hxl_rxclr(&g_at_uart);
 }
 void atc_putc(int c)
 {
-     hx_uart_putc(UART_AT_PORT,c);
+     hxl_putc(&g_at_uart,c);
 }
 void atc_send(const char *d,int l)
 {
-     hx_uart_send(UART_AT_PORT,d,l);
+     hxl_send(&g_at_uart,d,l);
 }
 void atc_put(const  char *s)
 {
-     hx_uart_put(UART_AT_PORT,s);
+     hxl_put(&g_at_uart,s);
 }
 void atc_puts(const  char *s)
 {
-     hx_uart_puts(UART_AT_PORT,s);
+     hxl_puts(&g_at_uart,s);
 }
 int atc_printf(const char *format, ...)
 {
-    int port_nr = UART_AT_PORT;
-
     int res;
     //use data or stack!
     //static
@@ -217,8 +216,8 @@ int atc_printf(const char *format, ...)
     va_start(vArgs, format);
     res = vsprintf((char *)buffer, (char const *)format, vArgs);
     va_end(vArgs);
-    hx_uart_put(port_nr, buffer);
-    hx_uart_send(port_nr,NULL,0);
+    hxl_put(&g_at_uart, buffer);
+    hxl_send(&g_at_uart,NULL,0);
     return res;
 }
 

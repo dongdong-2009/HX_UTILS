@@ -12,13 +12,14 @@
 
 #include "int.h"
 
+#include "hx_device.h"
 #include "hx_term.h"
-#include "hx_serial.h"
-#include "hx_atcmd.h"
+#include "hxl_serial.h"
 #include "hx_debug.h"
 #include "hx_ver_def.h"
+#include "hx_clcd.h"
 
-extern void hx_utils_init(int pclk);
+extern int hx_utils_init(void);
 extern uint32_t hx_get_gpclk(void);
 
 #define hx_do_timeout(tm_in_ms)						\
@@ -108,6 +109,11 @@ void* pk_fill(void *to, int len, int d);
 void* pk_add(void *to, int len, const void *from);
 void* pk_get(void*from,int len,void* to);
 
+//------------------------------------------------------------------------------
+extern int ymd2days(int y,int m,int d);
+extern long long ymdhms2sec(int y,int m,int d,int H,int M,int S);
+extern int ymdbcd2days(uint8_t *yyyymmdd);
+extern long long ymdhmsbcd2sec(uint8_t *yyyymmddHHMMSS);
 
 #endif
 

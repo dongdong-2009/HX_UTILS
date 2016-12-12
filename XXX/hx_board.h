@@ -7,7 +7,7 @@
 /*
 	define default board configs
 */
-#define HX_DEBUG_PORT		(-1)
+#define HX_DEBUG_PORT_BASE		(100)
 
 //======================================================
 //uart
@@ -32,20 +32,20 @@
 	config debug info output uart index
 */
 #ifndef UART_DEBUG_PORT
-#define UART_DEBUG_PORT		(-1)
+#define UART_DEBUG_PORT		(HX_DEBUG_PORT_BASE+0)
 #endif
 //=====================================================
 //PORTS OF TERMINAL
 /*
 	config debug info output uart index
 */
-#ifndef UART_TERMINAL_PORT
-#define UART_TERMINAL_PORT	(-1)
+#ifndef UART_TERMINAL_PORT_BASE
+#define UART_TERMINAL_PORT_BASE		(100)
 #endif
 //=====================================================
 //PORTS OF AT CMD PORT
 #ifndef UART_AT_PORT
-#define UART_AT_PORT		(0)
+#define UART_AT_PORT		(HX_DEBUG_PORT_BASE)
 #endif
 //=====================================================
 // uart_printf use vsprintf, need buffer data

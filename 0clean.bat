@@ -33,4 +33,9 @@ set RM=linux_tools\rm -rf
 
 %RM% wcdma_m_emu/hxSerialProtocol/Debug
 
+%RM% tts2wav/tts2wav/*.db
+%RM% tts2wav/tts2wav/obj/Debug
+
+
+
 pause
