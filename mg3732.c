@@ -52,37 +52,27 @@ const struct ATCMD_T at_tbl[] = {
 };
 
 
-static const HX_ATARG_T defarg = {
-	.rm_ip = "180.89.58.27",
-	.rm_port = 9020,
-	.apn = "cmnet",
-	.user = "",
-	.passwd = "",
-};
-static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
+static int _init(const struct HX_NIC_T *this)
 {
-	atc_default_init(this,pstep,arg);
-	#if defined(BRD_NIC_PWR) && defined(BRD_NIC_RST)
-		printf("sim7100c init.\n");
-		brd_ioctrl(BRD_NIC_PWR,1);	//default
-		brd_ioctrl(BRD_NIC_RST,1);
-		
-		brd_iomode(BRD_NIC_PWR,IM_OUT);	//output
-		brd_iomode(BRD_NIC_RST,IM_OUT);
+	nic_pwr(1);
+	nic_rst(1);
+	hx_delay_ms(100);		
 	
-		brd_ioctrl(BRD_NIC_RST,1);	//rst high
-		
-		brd_ioctrl(BRD_NIC_PWR,0);	//power low >=3500 poweron
-		hx_delay_ms(4000);
-		brd_ioctrl(BRD_NIC_PWR,1);
-		
-	#else
-		#warning ***No Define Hardware Port, Might be not Work! 
-	#endif
+	nic_pwr(0);
+	hx_delay_ms(4000);		//pdf say >3500ms is poweron
+	nic_pwr(1);
+	hx_delay_ms(500);		//pdf no say
+
 	return 0;
 }
+
+static const struct NET_PARAM_T defprm = {
+	.apn = "cmnet",
+	.rm_ip = {180,89,58,27},
+	.rm_port = 9020,
+};
 const struct HX_NIC_T nic_mg3732 = {
-	.default_arg = &defarg,
+	.default_param = &defprm,
 	.at_tbl = at_tbl,
 	.at_tbl_count = sizeof(at_tbl)/sizeof(at_tbl[0]),
 	.init = _init,

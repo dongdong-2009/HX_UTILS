@@ -20,61 +20,45 @@
 #define	DISABLE_DEBUG_TAG		""
 
 #ifdef __HX_ENABLE_DEBUG__	
-
-
 /*
 	When the debug is enabled, 
 	this control the output info that is show or not. on default state
 */
 #define	HX_OUTPUT_STATE_DEFAULT			(1)
 
-//hx_term.c
-extern int g_enable_debug_output;
+/*
+	user calls
+*/
+extern int g_enable_debug_output;//hx_term.c
 extern int hx_printf(const char *fmt,...);
 extern int hx_dprintf(HX_DEV *d,const char *fmt,...);
 extern void hx_dbg(char ch,const char *fmt,...);
 extern void hx_dbgi(char ch,const char *fmt,...);
 extern void hx_dbge(char ch,const char *fmt,...);
+extern int hx_debug_enable(int en);
 
-#define HX_DBG_ENABLE(en)		(g_enable_debug_output=en)
-#define HX_DBG_PRINT(...)		hx_printf(__VA_ARGS__)
 
+
+/*
+	these calls for inner referance.
+*/
+#define HX_DBG_CH(ch)			hx_debug_enable((ch<<8)|g_enable_debug_output)	/* select a channel to private ctrl */
+#define HX_DBG_PRINT(...)		hx_dbg(g_enable_debug_output>>8,__VA_ARGS__)	/*  */
 #define  HX_DBG_PRINTLN(...)			\
 	do{									\
 		HX_DBG_PRINT(__VA_ARGS__);		\
 		HX_DBG_PRINT("\r\n");			\
 	}while(0)
-#define  HX_DBG_ERROR(errCode)     								\
-	hx_uart_printf(UART_DEBUG_PORT,								\
-	"ERROR: In Function \"%s\" at Line (%u) - [" #errCode " = %d] \r\n", 		\
-	__FUNCTION__, __LINE__, errCode)
-#define HX_DBG_DUMP_HEX(buf,size)\
-do{	\
-	const char *p = (const char*)buf;\
-	for(int i=0;i<size;i++){\
-		HX_DBG_PRINT("%02X",(int)p[i]);\
-	}\
-}while(0)	
-
-#define HX_ABORT(s)												\
-do{																\
-	hx_uart_printf(UART_DEBUG_PORT,								\
-	"ABORT: In Function \"%s\" at Line (%u) - [%s] \r\n", 						\
-	__FUNCTION__, __LINE__, s);									\
-	while(1);													\
-}while(0)
-	
-#define HX_ASSERT(n)			do{	if(!(n)){ABORT(#n);} }while(0)
 
 #else
 
 #define  HX_DBG_ENABLE(...)	
 #define  HX_DBG_PRINT(...)    
 #define  HX_DBG_PRINTLN(...)	
-#define  HX_DBG_ERROR(...)   
-#define  HX_DBG_DUMP_HEX(...)	
-#define  HX_ABORT(...)		
-#define  HX_ASSERT(...)
+#define hx_dbg(...)
+#define hx_dbgi(...)
+#define hx_dbge(...)
+#define hx_debug_enable(...)   (0)
 	
 #endif
 
@@ -107,6 +91,15 @@ do{																\
 	for(int i=0;i<n;i++){\
 		HX_DBG_PRINT("%02X",(int)(((char*)(x))[i]));\
 	}\
+	HX_DBG_PRINT("("); \
+	for(int i=0;i<n;i++){\
+		char c = ((char*)(x))[i]; \
+		if(hx_isprint(c)) \
+			HX_DBG_PRINT("%c",c); \
+		else \
+			HX_DBG_PRINT(".");\
+	}\
+	HX_DBG_PRINT(")"); \
 	HX_DBG_PRINT("\r\n");\
 }
 #define PK_DEBUG_BYTE(p,x)	\
@@ -117,7 +110,7 @@ do{																\
 	HX_DBG_PRINT("\t%s",name);\
 	for(int i=0;i<len;i+=PK_SHOW_TAB_SIZE)\
 		HX_DBG_PRINT("\t");\
-	HX_DBG_PRINT("1\t %02X\r\n",(int)(x));\
+	HX_DBG_PRINT("1\t %02X(%u)\r\n",(int)(x),(int)x);\
 }
 #define PK_DEBUG_WORD(p,x)	\
 {\

@@ -45,35 +45,16 @@ static int check_connect(
 			(unsigned int)(p->rm_port));
 		return 0;
 	}else if(event == AT_GET){
-		//+CSQ: %d,%d
-		if(strcmp(buf,"CONNECT")==0
-		||strcmp(buf,"ALREADY CONNECT")==0	
-		){
+		if(strstr(buf,"FAIL"))	//CONNECT FAIL
+			return -1;
+		if(strstr(buf,"ERROR"))	//CONNECT ERROR
+			return -2;			
+		if(strstr(buf,"CONNECT"))	//CONNECT 115200 / ALREADY CONNECT etc..
 			return 0;
-		}
 		return -1;
 	}
 	return -1;
 }
-
-//static const struct ATCMD_T at_tbl[] = {
-//	//cmd					res			timeout		trytimes	check_res_proc
-//	{"AT",					"AT",		2000,		20, 		0},
-//	{"ATE0",				"OK",		2000,		20, 		0},
-//	{"AT+CSQ",				NULL,		2000,		20, 		check_csq},
-//	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
-//	//AT+CIPCSGP=1,"cmnet","",""
-//	{"AT+CIPCSGP=1,\"cmnet\",\"\",\"\"",		
-//							"OK",		2000,		5, 			0},
-//	{"AT+CIPSHUT",			"SHUT OK",	2000,		5, 			0},
-//	//180.89.58.27:9020
-//	{"AT+CIPSTART=\"TCP\",\"119.75.218.70\",\"80\"",	
-//							NULL/*"CONNECT"*/,	5000,5, 		check_connect},
-//	//AT+CIPSTART="TCP","180.89.58.27","9020"
-//	//{"AT+CIPSTART=\"TCP\",\"119.75.218.70\",\"80\"",	
-//	{"AT+CIPSTART=\"TCP\",\"180.89.58.27\",\"9020\"",	
-//							NULL/*"CONNECT"*/,	10000,5, 		check_connect},
-//};
 
 static const struct ATCMD_T at_tbl[] = {
 	//cmd					res			timeout		trytimes	check_res_proc
@@ -91,27 +72,8 @@ static const struct ATCMD_T at_tbl[] = {
 	//AT+CIPSTART="TCP","180.89.58.27","9020"
 	//{"AT+CIPSTART=\"TCP\",\"119.75.218.70\",\"80\"",	
 	{NULL/*"AT+CIPSTART=\"TCP\",\"180.89.58.27\",\"9020\""*/,	
-							NULL/*"CONNECT"*/,	10000,5, 		check_connect},
+							NULL/*"CONNECT"*/,	30000,5, 		check_connect},
 };
-
-
-//#define GPRSBordPowerON     LPC_GPIO3->FIOSET|=(1<<25);
-//#define GPRSBordPowerOFF    LPC_GPIO3->FIOCLR|=(1<<25);
-//#define GPRSPowerL     LPC_GPIO1->FIOSET|=(1<<20);//按键开关  反向的					
-//#define GPRSPowerH     LPC_GPIO1->FIOCLR|=(1<<20);//按键开关  反向的
-//BYTE GPRS_init(void)	//20140311 OK								   
-//{
-//	
-//	  LPC_GPIO3->FIODIR|=1<<25;//?????????
-////	  LPC_GPIO1->FIODIR&=~(1<<23);//GPRS??????  ??
-////	  LPC_GPIO1->FIODIR|=1<<20;//?????
-////	  GPRSBordPowerOFF;//??
-////	  delay_10ms(20);
-//	  GPRSBordPowerON;//??
-//	  return 0;	
-//}
-
-
 
 static int _init(const struct HX_NIC_T *this)
 {

@@ -74,7 +74,7 @@ int g_enable_debug_output = HX_OUTPUT_STATE_DEFAULT;
 
 
 //not call ctype.h ,use self is ok
-static int hx_isprint(int c)	
+int hx_isprint(int c)	
 {
 	return c>=0x20 && c<127;
 }
@@ -87,6 +87,10 @@ int hxt_getc_noblock(int *c)
 void hxt_put_char(int c) 
 {
 	hxl_putc(&hx_stdout,c);
+}
+void hxt_fput_char(HX_DEV *d,int c) 
+{
+	hxl_putc(d,c);
 }
 
 
@@ -300,6 +304,17 @@ int hxt_put(const char *s)
 	}
 	return 0;
 }
+
+int hxt_fput(HX_DEV *d, const char *s)
+{
+	const char *p = s;
+	int c;
+	while((c=*p++)!=0){
+		hxt_fput_char(d,c);
+	}
+	return 0;
+}
+
 int hxt_puts(const char *s)
 {
 	hxt_put(s);
@@ -684,7 +699,7 @@ int hxt_fprintf(HX_DEV *d,const char *fmt, ...)
     res = vsprintf(buff,fmt,ap);
     va_end(ap);
 	
-    hxt_put(buff);
+    hxt_fput(d,buff);
 	return res;
 }
 

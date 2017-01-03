@@ -13,6 +13,8 @@
 
 /*
 s : mode value whit asc
+s == NULL ,not change io direct
+s == "0"|"1"|... is 0|1|... for mode value
 */
 int hxd_iopin_open(HX_DEV *dev,const char *s)
 {
@@ -26,8 +28,10 @@ int hxd_iopin_open(HX_DEV *dev,const char *s)
 	if(board>=drv->tbl_count)
 		return -1;
 	int mode = 1;
-	if(s || s[0])
+	if(s && s[0])
 		mode = s[0] - '0';
+	else
+		return 0;
 	drv->iotbl[board]->iomode(port,(1<<pin),mode);
 	return 0;
 }
@@ -80,7 +84,7 @@ int hxd_iopin_write(HX_DEV *dev,const void *buf, int size)
 	else
 		val &= ~(1<<pin);
 	drv->iotbl[board]->ioctrl(port,val);
-	return 0;
+	return 1;
 }
 int hxd_iopin_close(HX_DEV *dev)
 {

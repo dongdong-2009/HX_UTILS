@@ -15,9 +15,12 @@
 #include "hx_device.h"
 #include "hx_term.h"
 #include "hxl_serial.h"
+#include "hxl_poll.h"
 #include "hx_debug.h"
 #include "hx_ver_def.h"
 #include "hx_clcd.h"
+#include "hx_debug.h"
+#include "hxd_atc.h"
 
 extern int hx_utils_init(void);
 extern uint32_t hx_get_gpclk(void);

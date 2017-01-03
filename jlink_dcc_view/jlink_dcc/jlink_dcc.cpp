@@ -1,6 +1,6 @@
 // jlink_dcc.cpp : 定义控制台应用程序的入口点。
 //
-
+#define _CRT_SECURE_NO_WARNINGS
 #include "stdafx.h"
 #include <windows.h>
 #include <typeinfo>
@@ -9,6 +9,11 @@
 #include<signal.h>
 #include "direct.h"
 #include <time.h>
+#include <stdio.h>
+#include <string.h>
+
+
+
 
 void (*JLINKARM_Open)(void);
 void(*JLINKARM_Close)(void);
@@ -129,10 +134,9 @@ void log_putchar(int c)
 		DWORD n = GetTickCount()- log_tickcount;
 		time_t t = log_time + n / 1000;
 		int ms = n % 1000;
-		tm tm;
-		localtime_s(&tm, &t);
+		struct tm *tm = localtime(&t);
 		fprintf(flog, "[%02u:%02u:%02u:%03u]\t",
-			tm.tm_hour,tm.tm_sec,tm.tm_sec,ms);
+			tm->tm_hour,tm->tm_sec,tm->tm_sec,ms);
 	}
 	fflush(flog);
 }
@@ -210,37 +214,37 @@ int main(int argc, char *argv[])
 	char *self = argv[0];
 	char log_file[512] = { 0 };
 	{
-		strcpy_s(log_file, 512, argv[0]);
+		strcpy(log_file, argv[0]);
 		
 		time_t t;
 		time(&t);
-		tm tm;
-		localtime_s(&tm, &t);
+		struct tm *tm;
+		tm = localtime(&t);
 		char log_fname[512];
-		sprintf_s(log_fname, "\\log-%04u%02u%02u.txt",
-			tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday);
+		sprintf(log_fname, "\\log-%04u%02u%02u.txt",
+			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
 		char *p = strrchr(log_file, '\\');
 		if (p) {
-			strcpy_s(p, 512, log_fname);
+			strcpy(p,log_fname);
 		}
 		else {
-			strcpy_s(log_file, 512, "\\jlinkdcc_log.txt");
+			strcpy(log_file, "\\jlinkdcc_log.txt");
 		}
 	}
-	fopen_s(&flog,log_file, "a+");
+	flog = fopen(log_file, "a+");
 	if (flog == NULL) {
 		printf("WARNING: log file can not creat.\r\n");
 	}
 
 	char config_file[512] = { 0 };
 	{	
-		strcpy_s(config_file, 512, argv[0]);
+		strcpy(config_file, argv[0]);
 		char *p = strrchr(config_file, '\\');
 		if (p) {
-			strcpy_s(p, 512, "\\jlinkarm_cfg.ini");
+			strcpy(p, "\\jlinkarm_cfg.ini");
 		}
 		else {
-			strcpy_s(config_file, 512, "jlinkarm_cfg.ini");
+			strcpy(config_file,  "jlinkarm_cfg.ini");
 		}
 	}
 
@@ -256,7 +260,7 @@ int main(int argc, char *argv[])
 		printf("OK\r\n");
 		if (device[0]) {
 			char buff[128];
-			sprintf_s(buff, "device = %s", device);
+			sprintf(buff, "device = %s", device);
 			JLINKARM_ExecCommand(buff, 0, 0);
 		}
 		else {

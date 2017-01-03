@@ -1,6 +1,7 @@
 #include "hx_utils.h"
 #include "string.h"
 #include "stdio.h"
+#include "hxd_atc.h"
 
 /*
 ========================================================
@@ -127,7 +128,7 @@ static const struct ATCMD_T at_tbl[] = {
 	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
 	{"AT+CGDCONT=1,\"IP\",\"apn\"",		
 							"OK",		2000,		5, 			0},
-	{"AT+CGSOCKCONT=1,\"IP\",\"CMNET\"",		
+	{"AT+CGSOCKCONT=1,\"IP\",\"cmnet\"",		
 							"OK",		2000,		5, 			0},
 	//{"AT+CSOCKSETPN=1",		"OK",		2000,		5, 			0},
 	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
@@ -137,41 +138,28 @@ static const struct ATCMD_T at_tbl[] = {
 							NULL/*"CONNECT"*/,	30000,5, 		on_connect},
 };
 
-static const HX_ATARG_T defarg = {
-	.rm_ip = "180.89.58.27",
-	.rm_port = 9020,
-	.apn = "cmnet",
-	.user = "",
-	.passwd = "",
-};
-
-static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
-{
-	atc_default_init(this,pstep,arg);
-//	#if defined(BRD_NIC_PWR) && defined(BRD_NIC_RST)
-//		printf("sim7100c init.\n");
-//		brd_ioctrl(BRD_NIC_PWR,1);	//default
-//		brd_ioctrl(BRD_NIC_RST,1);
-//		
-//		brd_iomode(BRD_NIC_PWR,IM_OUT);	//output
-//		brd_iomode(BRD_NIC_RST,IM_OUT);
-//		
-//		brd_ioctrl(BRD_NIC_PWR,0);	//power low 500
-//		hx_delay_ms(500);
-//		brd_ioctrl(BRD_NIC_PWR,1);
-//		hx_delay_ms(1000);
-//		brd_ioctrl(BRD_NIC_RST,0);	//rst low 500
-//		hx_delay_ms(500);
-//		brd_ioctrl(BRD_NIC_RST,1);
-//		hx_delay_ms(1000);
-//	#else
-//		#error ***No Define Hardware Port, Might be not Work! 
-//	#endif
+static int _init(const struct HX_NIC_T *this)
+{	
+	nic_pwr(0);
+	hx_delay_ms(500);
+	nic_pwr(1);
+	hx_delay_ms(1000);
+	
+	nic_rst(0);
+	hx_delay_ms(500);
+	nic_rst(1);
+	hx_delay_ms(1000);
 	return 0;
 }
 
+static const struct NET_PARAM_T defprm = {
+	.apn = "cmnet",
+	.rm_ip = {180,89,58,27},
+	.rm_port = 9020,
+};
+
 const struct HX_NIC_T nic_sim7600c = {
-	.default_arg = &defarg,
+	.default_param = &defprm,
 	.at_tbl = at_tbl,
 	.at_tbl_count = sizeof(at_tbl)/sizeof(at_tbl[0]),
 	.init = _init,

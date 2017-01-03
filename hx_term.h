@@ -85,6 +85,7 @@ extern int hxt_exec_cmd(const char *cmd);
 extern int hxt_printf(const char *fmt, ...);
 extern int hxt_fprintf(HX_DEV *d,const char *fmt, ...);
 extern int hxt_getc_noblock(int *c);
+extern int hx_isprint(int c);
 
 /*
 	only two case can return :

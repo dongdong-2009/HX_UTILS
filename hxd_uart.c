@@ -47,12 +47,36 @@ static int uart_getc_noblock(const UART_DEV_T *uart,int *c)
 	drv->interrupt_ctrl(uart,1);
 	return res;
 }
+/* return char count that can be read */
+int hxd_uart_poll(HX_DEV *dev,void *vp,int ip)
+{
+	const char *s = vp;
+	int sl = strlen(s);
+	const UART_DEV_T *uart = (const UART_DEV_T *)(dev->pdev);
+	UART_DRV_T *drv = (UART_DRV_T*)(uart->dev.driver);
+	UART_PRIVATE_T *prv = uart->prv;
+	drv->interrupt_ctrl(uart,0);
+	int rxread = prv->rx_read;
+	int rxpos = prv->rx_pos;
+	char *rxbuf = (char*) uart->rxbuf;
+	drv->interrupt_ctrl(uart,1);
+	if(rxread>=rxpos)
+		return -1;
+	for(int i=rxread;i<rxpos;i++){
+		if(memcmp(&rxbuf[i],s,sl)==0){
+			return i-rxread;
+		}
+	}
+	return -1;
+}
 int hxd_uart_read(HX_DEV *dev,void *buf,int _size)
 {
 	const UART_DEV_T *uart = (const UART_DEV_T *)(dev->pdev);
 	int res,c;
 	int size = _size;
 	unsigned char *p = buf;
+	if(!buf)
+		return -2;
 	if(size<=0)
 		return -2;
 	int i;
@@ -82,23 +106,25 @@ int hxd_uart_write(HX_DEV *dev,const void *buf, int size)
 	UART_DEV_T *uart = (UART_DEV_T*)(dev->pdev);
 	UART_DRV_T *drv = (UART_DRV_T*)(uart->dev.driver);
 	//check len big than buff
+	const char *p = (const char*)buf;
 	int n = size;
 	if(n==0){
 		wait_last_trans_complete(uart);
 		return 0;
 	}
-	while(n>uart->txbuf_size){
+	while(n > uart->txbuf_size){
 		wait_last_trans_complete(uart);
 		//start a new session
-		memcpy((void*)(uart->txbuf),buf,uart->txbuf_size);
+		memcpy((void*)(uart->txbuf),p,uart->txbuf_size);
 		uart->prv->tx_wtire = uart->txbuf_size;
 		uart->prv->tx_pos = 0;
 		drv->tx_start_byte(uart,uart->txbuf[0]);
 		n -= uart->txbuf_size;
+		p += uart->txbuf_size;
 	}
 	wait_last_trans_complete(uart);
 	//start a new session
-	memcpy((void*)(uart->txbuf),buf,n);
+	memcpy((void*)(uart->txbuf),p,n);
 	uart->prv->tx_wtire = n;
 	uart->prv->tx_pos = 0;
 	drv->tx_start_byte(uart,uart->txbuf[0]);

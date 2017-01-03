@@ -6,7 +6,9 @@
 #ifdef __HX_ENABLE_DEBUG__
 
 int hx_vprintf(HX_DEV *d,const char *fmt,va_list va)
-{
+{	
+	if(!g_enable_debug_output)
+		return 0;
 	return hxl_vprintf(d,fmt, va);
 }
 
@@ -14,8 +16,6 @@ int hx_printf(const char *fmt,...)
 {
 
 	int res;
-	if(!g_enable_debug_output)
-		return 0;
 	va_list  va;
     va_start(va, fmt);
     res = hx_vprintf(hxout,fmt, va);
@@ -36,7 +36,7 @@ int hx_dprintf(HX_DEV *d,const char *fmt,...)
 #define SHOW_TAG(...)	//hxl_printf(__VA_ARGS__)
 void hx_dbg(char ch,const char *fmt,...)
 {
-	if(!strchr(DISABLE_DEBUG_TAG,ch)){
+	if(!ch || !strchr(DISABLE_DEBUG_TAG,ch)){
 		va_list  va;
 		va_start(va, fmt);
 		SHOW_TAG(hxout,"[%u]",(unsigned int)ch);
@@ -46,7 +46,7 @@ void hx_dbg(char ch,const char *fmt,...)
 }
 void hx_dbgi(char ch,const char *fmt,...)
 {
-	if(!strchr(DISABLE_DEBUG_TAG,ch)){
+	if(!ch || !strchr(DISABLE_DEBUG_TAG,ch)){
 		va_list  va;
 		va_start(va, fmt);
 		SHOW_TAG(hxout,"[%u]",(unsigned int)ch);
@@ -56,7 +56,7 @@ void hx_dbgi(char ch,const char *fmt,...)
 }
 void hx_dbge(char ch,const char *fmt,...)
 {
-	if(!strchr(DISABLE_DEBUG_TAG,ch)){
+	if(!ch || !strchr(DISABLE_DEBUG_TAG,ch)){
 		va_list  va;
 		va_start(va, fmt);
 		SHOW_TAG(hxout,"[%u]",(unsigned int)ch);
@@ -64,6 +64,10 @@ void hx_dbge(char ch,const char *fmt,...)
 		va_end(va);
 	}
 }
-
-
+int hx_debug_enable(int en)
+{
+	int res = g_enable_debug_output;
+	g_enable_debug_output = en;
+	return res;
+}
 #endif

@@ -130,7 +130,7 @@ static int ne4110_reset(void)
 static int ne4110_config(char *param_file)
 {
 	int res;
-	char buff[100];
+	//char buff[100];
 	res = ne4110_enter_cmdmode();
 	if(res){
 		ne4110_leave_cmdmode(0);
@@ -140,16 +140,16 @@ static int ne4110_config(char *param_file)
 			return res;
 	}
 #define NE_DINFO(...)	HX_DBG_PRINTLN(__VA_ARGS__)	
-	HX_NIC_INFO_T *ne_info = &g_nic_info;
-	if(ne_info) memset(ne_info, 0, sizeof(HX_NIC_INFO_T));
-	NE_DINFO("SerialNumber:%s", ne4110_read_cmd("BS","",buff));
-	if(ne_info) strncpy(ne_info->sn,buff,9);
-	NE_DINFO("FirmwareVersion:%s", ne4110_read_cmd("BV","",buff));
-	if(ne_info) strncpy(ne_info->firm_ver,buff,9);
-	NE_DINFO("ModuleName:%s", ne4110_read_cmd("BN","",buff));
-	if(ne_info) strncpy(ne_info->module_name,buff,19);
-	NE_DINFO("MAC:%s", ne4110_read_cmd("NA","",buff));
-	if(ne_info) strncpy(ne_info->mac,buff,19);
+//	HX_NIC_INFO_T *ne_info = &g_nic_info;
+//	if(ne_info) memset(ne_info, 0, sizeof(HX_NIC_INFO_T));
+//	NE_DINFO("SerialNumber:%s", ne4110_read_cmd("BS","",buff));
+//	if(ne_info) strncpy(ne_info->sn,buff,9);
+//	NE_DINFO("FirmwareVersion:%s", ne4110_read_cmd("BV","",buff));
+//	if(ne_info) strncpy(ne_info->firm_ver,buff,9);
+//	NE_DINFO("ModuleName:%s", ne4110_read_cmd("BN","",buff));
+//	if(ne_info) strncpy(ne_info->module_name,buff,19);
+//	NE_DINFO("MAC:%s", ne4110_read_cmd("NA","",buff));
+//	if(ne_info) strncpy(ne_info->mac,buff,19);
 	
 	char default_params[] = 
 		"NC=0"		// 0:static 1:dhcp
@@ -198,23 +198,8 @@ static int ne4110_config(char *param_file)
 	
 	return 0;
 }
-//struct NE4110_CFG_ST g_ne4110_cfg = {
-//	0,
-//	{192,168,60,20},
-//	{255,255,255,255},
-//	{192,168,60,254},
-//};
 
-static const HX_ATARG_T defarg = {
-	.rm_ip = "180.89.58.27",
-	.rm_port = 9020,
-	.lc_ip = "0.0.0.0",
-	.mask = "0.0.0.0",
-	.gateway = "0.0.0.0",
-	.dhcp_en = 1,
-};
-
-static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
+static int _init(const struct HX_NIC_T *this)
 {
 	int res;
 	char ne_params[512];
@@ -226,10 +211,10 @@ static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
 		"&NG=%s"	//gateway
 		"&CA=180.89.58.27"	//rm ip
 		"&C1=9020"			//rm port
-	,this->default_arg->dhcp_en?1:0
-	,this->default_arg->lc_ip
-	,this->default_arg->mask
-	,this->default_arg->gateway
+	,g_net_param.dhcp_en?1:0
+	,g_net_param.lc_ip
+	,g_net_param.mask
+	,g_net_param.gateway
 	);
 	do{
 		res = ne4110_config(ne_params);
@@ -243,13 +228,22 @@ static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
 }
 
 
-static void _reset(const struct HX_NIC_T *this) 
+static int _reset(const struct HX_NIC_T *this) 
 {
 	  ne4110_reset();
+	return 0;
 }
+static const struct NET_PARAM_T defprm = {
+	.rm_ip = {180,89,58,27},
+	.rm_port = 9020,	
+	.lc_ip = {192,168,60,198},
+	.mask = {255,255,255,0},
+	.gateway = {192,168,60,254},
+	.dhcp_en = 0,
+};
 
 const struct HX_NIC_T nic_ne4110s = {
-	.default_arg = &defarg,
+	.default_param = &defprm,
 	.init = _init,
 	.reset = _reset,
 };

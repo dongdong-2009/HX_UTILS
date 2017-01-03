@@ -80,11 +80,40 @@ static int on_csq(
 	char *buf, 
 	void *msg)
 {
+	int res;
 	//+CSQ: %d,%d
 	if(buf[0] == '+'){
 		int a=0,b=0;
-		sscanf(buf,"+CSQ: %d,%d",&a,&b);
-		if(a>0)
+		res = sscanf(buf,"+CSQ: %d,%d",&a,&b);
+		if(res==2 &&(a>0 && a<99))
+			return 0;
+	}
+	return -1;
+}
+static int on_zpas(
+	int step, 
+	enum ATEVENT_T event,
+	char *buf, 
+	void *msg)
+{
+	if(strstr(buf,"CS_PS"))	//CONNECT FAIL
+		return 0;
+	if(strstr(buf,"PS_ONLY"))	//CONNECT ERROR
+		return 0;			
+	return -1;
+}
+static int on_creg(
+	int step, 
+	enum ATEVENT_T event,
+	char *buf, 
+	void *msg)
+{
+	int res;
+	//+CSQ: %d,%d
+	if(buf[0] == '+'){
+		int a=0,b=0;
+		res = sscanf(buf,"+CREG: %d,%d",&a,&b);
+		if(res==2 && (b==1||b==5))
 			return 0;
 	}
 	return -1;
@@ -95,9 +124,9 @@ static int check_zipcall(
 	char *buf, 
 	void *msg)
 {
-	int id;
-	sscanf(buf,"+ZIPCALL: %d,",&id);
-	if(id>0){
+	int id=0;
+	int res = sscanf(buf,"+ZIPCALL: %d,",&id);
+	if(res==1 && id>0){
 		return 0;
 	}
 	return -1;
@@ -109,67 +138,162 @@ static int check_zipstat(
 	char *buf, 
 	void *msg)
 {
+	int res;
 	int socket,state;
-	sscanf(buf,"+ZIPSTAT: %d,%d",&socket,&state);
-    if(socket>0 && state==1)
+	res = sscanf(buf,"+ZIPSTAT: %d,%d",&socket,&state);
+    if(res ==2 && socket>0 && state==1)
         return 0;
     return -1;
 }
+
+static int on_netact(
+	int step, 
+	enum ATEVENT_T event,
+	char *buf, 
+	void *msg)
+{
+	int res;
+	int socket,state;
+	int ip[4] = {0};
+	res = sscanf(buf,"$MYURCACT: %d,%d,\"%u.%u.%u.%u\"",&socket,&state,
+		&ip[0],&ip[1],&ip[2],&ip[3]
+	);
+    if(res==6 && state==1){
+        hx_dbgi(0,"lc_ip: %u.%u.%u.%u\n",ip[0],ip[1],ip[2],ip[3]);
+		return 0;
+	}
+    return -1;
+}
+
+
+static int on_connect(
+	int step, 
+	enum ATEVENT_T event,
+	char *buf, 
+	void *msg)
+{
+	if(strstr(buf,"FAIL"))	//CONNECT FAIL
+		return -1;
+	if(strstr(buf,"ERROR"))	//CONNECT ERROR
+		return -2;			
+	if(strstr(buf,"CONNECT"))	//CONNECT 115200 / ALREADY CONNECT etc..
+		return 0;
+	return -1;
+}
+/*
+AT+CPIN?		//返回 "+CPIN: READY"
+AT+CSQ			//返回 "+CSQ: a,b"    a>15 && a!=99
+AT+CREG?		//返回 "+CREG: a,b"	  b==1 || b==5
+AT+ZPAS?		//返回 "CS_PS" 或者 "PS_ONLY"
+AT$MYNETINFO=1	//返回 "OK"		设置模式见下表
+AT$MYNETCON=0,"APN","cmnet"		//返回	"OK"
+//AT$MYNETCON=0,"USERPWD",","	//这条可以不用
+AT$MYNETACT=0,1	//返回 $MYURCACT: a,b,"ip地址" 其中 b==1
+AT$MYNETCREATE=0,0,0,"180.89.58.27",9020,9020	//返回 "CONNECT"
+
+mode:
+1:auto
+2:2G( GSM, EDGE,CDMA)
+3:3G( WCDMA, TD-SCDMA, EVDO)
+4:4G( FDD-LTE, TD-LTE)
+5:2G+3G
+6:2G+4G
+7:3G+4G
+
+
+
+*/
+static const struct ATCMD_T at_tbl_for_c1b[] = {
+	//cmd					res			timeout		trytimes	event_proc
+	//{"ATE1",				"OK",		2000,		20, 		0},
+	//{"ATE0",				"OK",		2000,		20, 		0},
+	{"AT+CPIN?",			"+CPIN: READY",		2000,		20, 		on_csq},
+	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
+	{"AT+CREG?",			NULL,		2000,		20,			on_creg},
+	{"AT+ZPAS?",				NULL,		2000,		20,			on_zpas},
+//	{"AT$MYNETINFO=1",		"OK",		2000,		5,			0},
+	{"AT$MYNETCON=0,\"APN\",\"cmnet\"",		
+							"OK",		2000,		5,			0},
+	//{"AT$MYNETCON=0,\"USERPWD\",\",\"",		
+	//						"OK",		2000,		5,			0},
+	{"AT$MYNETACT=0,1",		NULL,		2000,		5,			on_netact},
+	{"AT$MYNETCREATE=0,0,0,\"180.89.58.27\",9020,9020",	
+							NULL,		3000,		5,			on_connect},
+};
+
 static const struct ATCMD_T at_tbl[] = {
 	//cmd					res			timeout		trytimes	event_proc
 	{"ATE1",				"OK",		2000,		20, 		0},
 	{"ATE0",				"OK",		2000,		20, 		0},
 	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
+	//{"AT+CREG?",			NULL,		2000,		20,			on_creg},
 	{"AT+ZSNT=0,0,0",		"OK",		2000,		5,			0},
 	//{"AT+CEREG?",			NULL,		2000,		10,			on_cereg},
 	//{"AT+ZPAS?",			NULL,		2000,		5,			on_zpas},
-	
+	//AT$MYNETCREATE=0,0,0,"180.89.58.27",9020,9020
+	//AT$MYNETCREATE=0,0,0,"127.0.0.1",9020
 	//{"AT+CGDCONT=1,\"IP\",\"CMNET\"",		
 	//						"OK",		2000,		5, 			0},
-	
+	//AT$MYNETCREATE=1,2,2,"172.22.44.123",5300,3000
 	{"AT+ZIPCFG=cmnet",		"OK",		2000,		5,			0},
 	{"AT+ZIPCALL=1",		NULL,		3000,		10,			check_zipcall,},
+	{"AT+ZIPSETRPT=1",		"OK",		3000,		5,			0},
 	ATCMD_DELAY(3000),
 	{"AT+ZIPOPEN=1,0,180.89.58.27,9020",
 							NULL,		3000,		5,			check_zipstat},	
 };
 
-static const HX_ATARG_T defarg = {
-	.rm_ip = "180.89.58.27",
-	.rm_port = 9020,
-	.apn = "cmnet",
-	.user = "",
-	.passwd = "",
-};
-
-static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
+static int _init_me3630_pid_c1a(const struct HX_NIC_T *this)
 {
-	atc_default_init(this,pstep,arg);
-	#if defined(BRD_NIC_PWR) && defined(BRD_NIC_RST)
-		printf("sim7100c init.\n");
-		brd_ioctrl(BRD_NIC_PWR,1);	//default
-		brd_ioctrl(BRD_NIC_RST,1);
-		
-		brd_iomode(BRD_NIC_PWR,IM_OUT);	//output
-		brd_iomode(BRD_NIC_RST,IM_OUT);
-		
-		brd_ioctrl(BRD_NIC_PWR,0);	//power low 500
-		hx_delay_ms(500);
-		brd_ioctrl(BRD_NIC_PWR,1);
-		hx_delay_ms(1000);
-		brd_ioctrl(BRD_NIC_RST,0);	//rst low 500
-		hx_delay_ms(500);
-		brd_ioctrl(BRD_NIC_RST,1);
-		hx_delay_ms(1000);
-	#else
-		#warning ***No Define Hardware Port, Might be not Work! 
-	#endif
+	nic_pwr(1);
+	nic_rst(1);
+	hx_delay_ms(100);		
+	
+	nic_pwr(0);
+	hx_delay_ms(500);		//pdf say 0.2s normal
+	nic_pwr(1);
+	hx_delay_ms(500);		//pdf no say
+	
+	nic_rst(0);
+	hx_delay_ms(1500);		//pdf say 1s normal
+	nic_rst(1);
+	hx_delay_ms(3000);		//pdf say 32s normal
 	return 0;
 }
 
-const struct HX_NIC_T nic_me3630 = {
-	.default_arg = &defarg,
+static int _init_me3630_pid_c1b(const struct HX_NIC_T *this)
+{
+	nic_pwr(1);
+	nic_rst(1);
+	hx_delay_ms(100);		
+	
+	nic_pwr(0);
+	hx_delay_ms(500);		//pdf say 0.2s normal
+	nic_pwr(1);
+	hx_delay_ms(500);		//pdf no say
+	
+	nic_rst(0);
+	hx_delay_ms(1500);		//pdf say 1s normal
+	nic_rst(1);
+	hx_delay_ms(3000);		//pdf say 32s normal
+	return 0;
+}
+static const struct NET_PARAM_T defprm = {
+	.apn = "cmnet",
+	.rm_ip = {180,89,58,27},
+	.rm_port = 9020,
+};
+const struct HX_NIC_T nic_me3630_pid_c1b = {
+	.default_param = &defprm,
+	.at_tbl = at_tbl_for_c1b,
+	.at_tbl_count = sizeof(at_tbl_for_c1b)/sizeof(at_tbl_for_c1b[0]),
+	.init = _init_me3630_pid_c1b,
+};
+
+const struct HX_NIC_T nic_me3630_pid_c1a = {
+	.default_param = &defprm,
 	.at_tbl = at_tbl,
 	.at_tbl_count = sizeof(at_tbl)/sizeof(at_tbl[0]),
-	.init = _init,
+	.init = _init_me3630_pid_c1a,
 };
+

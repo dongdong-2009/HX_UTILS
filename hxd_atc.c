@@ -37,7 +37,7 @@ void nic_rst(int level)
 }
 //-----------------------------------------------------------------
 
-static struct NET_PARAM_T g_net_param = {0};
+struct NET_PARAM_T g_net_param = {0};
 
 static const PARAM_ITEM_T g_param_tbl[] = {
 	{"step",		"%u",	&g_net_param.step},
@@ -90,25 +90,36 @@ static int _atc_poll(HX_DEV *dev,void *vp,int ip)
 {
 	const ATC_DEV_T *atcdev = (const ATC_DEV_T *)dev->pdev;
 	const struct HX_NIC_T *nic = atcdev->nic;
-	
-	dev->offset = atc_poll(nic,&(atcdev->param->step),atcdev->param);
 	if(nic->at_tbl_count == dev->offset)
 		return 0;
+	dev->offset = atc_poll(nic,&(atcdev->param->step),atcdev->param);
 	return -1;
 }
 static int atc_read(HX_DEV *dev,void *buf,int _size)
 {
-	UART_DRV_T *udrv = (UART_DRV_T *)(g_at_uart.pdev->driver);
-	if(udrv->cdrv.read)
-		return udrv->cdrv.read(&g_at_uart,buf,_size);
+	const ATC_DEV_T *atcdev = (const ATC_DEV_T *)dev->pdev;
+	const struct HX_NIC_T *nic = atcdev->nic;
+	if(nic->at_tbl_count < dev->offset){
+		/*cmd mode need to achive.*/
+	}else{
+		UART_DRV_T *udrv = (UART_DRV_T *)(g_at_uart.pdev->driver);
+		if(udrv->cdrv.read)
+			return udrv->cdrv.read(&g_at_uart,buf,_size);
+	}
 	return -1;
 }
 
 static int atc_write(HX_DEV *dev,const void *buf, int size)
 {
-	UART_DRV_T *udrv = (UART_DRV_T *)(g_at_uart.pdev->driver);
-	if(udrv->cdrv.write)
-		return udrv->cdrv.write(&g_at_uart,buf,size);
+	const ATC_DEV_T *atcdev = (const ATC_DEV_T *)dev->pdev;
+	const struct HX_NIC_T *nic = atcdev->nic;
+	if(nic->at_tbl_count < dev->offset){
+		/*cmd mode need to achive.*/
+	}else{
+		UART_DRV_T *udrv = (UART_DRV_T *)(g_at_uart.pdev->driver);
+		if(udrv->cdrv.write)
+			return udrv->cdrv.write(&g_at_uart,buf,size);
+	}
 	return -1;
 }
 static int atc_close(HX_DEV *dev)
@@ -121,18 +132,12 @@ static int atc_close(HX_DEV *dev)
 	return 0;
 }
 
-static const DEV_DRV_T atc_drv = {
+const DEV_DRV_T hx_atc_drv = {
 	.open = atc_open,
 	.read = atc_read,
 	.write = atc_write,
 	.close = atc_close,
 	.poll = _atc_poll,
-};
-
-const ATC_DEV_T g_cdev_sim800c = {
-	.dev = {"sim800c",0,&atc_drv},
-	.param = &g_net_param,
-	.nic = &nic_sim800c,
 };
 
 
@@ -181,6 +186,7 @@ int atc_poll(const struct HX_NIC_T *nic, int *pstep, struct NET_PARAM_T *param)
 				*pstep = step;
                 return step;
             } else {
+				hxl_rxclr(&g_at_uart);
                 hxl_printf(&g_at_uart,"%s\r\n",at_tbl[step].cmd);
                 is_send = 1;
                 HX_DBG_PRINT("ATCMD_TX: [%s]\r\n",at_tbl[step].cmd);
@@ -188,6 +194,7 @@ int atc_poll(const struct HX_NIC_T *nic, int *pstep, struct NET_PARAM_T *param)
         } else if(at_tbl[step].callback) {	//has none, than callback
             memset(buff,0,buff_size);
             at_tbl[step].callback(step,AT_PUT,buff,param);
+			hxl_rxclr(&g_at_uart);
             hxl_printf(&g_at_uart,"%s\r\n",buff);
             is_send = 1;
             HX_DBG_PRINT("ATCMD_TX: [%s]\r\n",buff);

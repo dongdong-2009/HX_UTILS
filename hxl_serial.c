@@ -25,10 +25,10 @@ int hxl_getc_noblock(HX_DEV *d,int *c)
 }
 void hxl_rxclr(HX_DEV *d)
 {
-	int res;
+/*	int res;
 	do{
 		res = hxl_getc_noblock(d,NULL);
-	}while(res==0);
+	}while(res==0);*/
 }
 int hxl_getc_block(HX_DEV *d)
 {
@@ -57,48 +57,77 @@ int hxl_getc_timeout(HX_DEV *d, int *c, int timeout)
 */
 int hxl_gets_noblock(HX_DEV *d, char *buff, int buff_size)
 {
-	//#define MAX_CHARS_LINE				(128)
-	static char g_gets_buf[MAX_CHARS_LINE];
-	static int g_gets_count=0;
-	
-	int res;
-	int c;
-	while(1){	
-		if(g_gets_count>=MAX_CHARS_LINE)
-			g_gets_count = 0;
-		res = hxl_getc_noblock(d,&c);
-		if(res)
-			return -4;
-		//PRINT_Log("%c",(char)c);
-		
-		if(c=='\n' || c=='\r'){		//endl
-
-			if(g_gets_count>0){
-				if(g_gets_count<buff_size){
-					memcpy(buff,g_gets_buf,g_gets_count);
-					res = g_gets_count;
-				}else{
-					memcpy(buff,g_gets_buf,buff_size);
-					res = g_gets_count;
-				}
-				buff[g_gets_count] = 0;
-				g_gets_count = 0;
-			}else{
-				res = g_gets_count;
-				buff[0] = 0;
-				g_gets_count = 0;
-			}
-			return res;
-		}else{
-			if(!hx_isprint(c))
-				continue;
-			if(g_gets_count<(MAX_CHARS_LINE-1)){
-				g_gets_buf[g_gets_count] = c;
-				g_gets_count ++;
-			}
-			continue;
-		}
+	const DEV_DRV_T *drv = d->pdev->driver;
+	if(!(drv->poll)){
+		hx_dbge(0,"device not surpport poll call.\n");
+		return -1;
 	}
+	memset(buff,0,buff_size);
+	int l = hx_poll(d,"\n",0);
+	int res = hx_poll(d,"\r",0);
+	if(res>l)
+		res = l;
+	if(res>=0){
+		if(res>buff_size)
+			l = buff_size;
+		else
+			l = res;
+		if(l>0){
+			res = hx_read(d,buff,l);
+			if(res!=l){
+				return res;
+			}
+		}
+		char c;
+		hx_read(d,&c,1);	//¶Á×ß»»ĞĞ
+		return l;
+	}else{
+		return res;
+	}
+//	
+//#warning retreant !!!!
+//	//#define MAX_CHARS_LINE				(128)
+//	static char g_gets_buf[MAX_CHARS_LINE];
+//	static int g_gets_count=0;
+//	
+//	int res;
+//	int c;
+//	while(1){	
+//		if(g_gets_count>=MAX_CHARS_LINE)
+//			g_gets_count = 0;
+//		res = hxl_getc_noblock(d,&c);
+//		if(res)
+//			return -4;
+//		//PRINT_Log("%c",(char)c);
+//		
+//		if(c=='\n' || c=='\r'){		//endl
+
+//			if(g_gets_count>0){
+//				if(g_gets_count<buff_size){
+//					memcpy(buff,g_gets_buf,g_gets_count);
+//					res = g_gets_count;
+//				}else{
+//					memcpy(buff,g_gets_buf,buff_size);
+//					res = g_gets_count;
+//				}
+//				buff[g_gets_count] = 0;
+//				g_gets_count = 0;
+//			}else{
+//				res = g_gets_count;
+//				buff[0] = 0;
+//				g_gets_count = 0;
+//			}
+//			return res;
+//		}else{
+//			if(!hx_isprint(c))
+//				continue;
+//			if(g_gets_count<(MAX_CHARS_LINE-1)){
+//				g_gets_buf[g_gets_count] = c;
+//				g_gets_count ++;
+//			}
+//			continue;
+//		}
+//	}
 }
 void hxl_gets_block(HX_DEV *d, char *buff, int buff_size)
 {

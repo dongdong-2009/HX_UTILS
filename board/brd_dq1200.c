@@ -6,7 +6,8 @@
 #include "../board/brd_dq1200.h"
 #include "../cpu/cpu_lpc2378.h"
 #include "hxd_iopin.h"
-#include "hxd_ioport.h"
+#include "hxd_ioport.h" 
+#include "string.h"
 
 HX_DEV g_u0_com;
 
@@ -34,7 +35,7 @@ void sb_iomode(uint port,uint pin,uint mode)
 	hxl_printf(&g_u0_com,"$hx+iomode+3+%x+%x+%x\r\n",
 		port,pin,mode);
 	char buff[64];
-	if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK"))
+	if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK")>0)
 		HX_DBG_PRINTLN("OK.");
 	else
 		HX_DBG_PRINTLN("ERROR.");
@@ -45,7 +46,7 @@ void sb_ioctrl(uint port,uint val)
 	hxl_printf(&g_u0_com,"$hx+ioctrl+2+%x+%x\r\n",
 		port,val);
 	char buff[64];
-	if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK"))
+	if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK")>0)
 		HX_DBG_PRINTLN("OK.");
 	else
 		HX_DBG_PRINTLN("ERROR.");	
@@ -101,6 +102,12 @@ static const DEV_T cdev_at_io_pwr =
 	{"at_io_pwr",(_IOPIN_ID(1,0,13)|PIN_ATTR_INVERSE),(const DEV_DRV_T*)&iopin_drv};
 static const DEV_T cdev_at_io_rst = 
 	{"at_io_rst",(_IOPIN_ID(1,0,6)|PIN_ATTR_INVERSE),(const DEV_DRV_T*)&iopin_drv};
+	
+static const DEV_T cdev_at_io_pwr_sim7100c = 
+	{"at_io_pwr",(_IOPIN_ID(1,0,7)),(const DEV_DRV_T*)&iopin_drv};
+static const DEV_T cdev_at_io_rst_sim7100c = 
+	{"at_io_rst",(_IOPIN_ID(1,0,0)),(const DEV_DRV_T*)&iopin_drv};
+	
 //--------------------------------------------------------
 extern volatile unsigned __g_cpu_tickcount;
 static unsigned int __fpclk;
@@ -266,6 +273,160 @@ int sub_brd_init(void)
 	BRD_DBG_PRINT(stderr,"board init error: no response\r\n");
 	return -1;
 }
+const ATC_DEV_T g_cdev_sim800c = {
+	.dev = {"sim800c",0,&hx_atc_drv},
+	.param = &g_net_param,
+	.nic = &nic_sim800c,
+};
+
+const ATC_DEV_T g_cdev_sim7600c = {
+	.dev = {"sim7600c",0,&hx_atc_drv},
+	.param = &g_net_param,
+	.nic = &nic_sim7600c,
+};
+const ATC_DEV_T g_cdev_me3630_c1a = {
+	.dev = {"me3630_c1a",0,&hx_atc_drv},
+	.param = &g_net_param,
+	.nic = &nic_me3630_pid_c1a,
+};
+const ATC_DEV_T g_cdev_me3630_c1b = {
+	.dev = {"me3630_c1b",0,&hx_atc_drv},
+	.param = &g_net_param,
+	.nic = &nic_me3630_pid_c1b,
+};
+
+//---------------------------------------------------------------------------
+//static char card_res_buf[256];
+//static int card_res_len;
+//extern int EXECUTE_PSAM_CMD(const char *cmd_buf,int cmd_len,char *res_buf,int *p_res_len);
+//extern int EXECUTE_CPUCARD_CMD(const char *cmd_buf,int cmd_len,char *res_buf,int *p_res_len);
+//extern int find_card(int *card);
+//extern uint16_t PsamInit(uint8_t ucPsamPos,unsigned long ulPsamBaud);
+
+
+//static void card_cmd(int id,const char *cmd,int cmdlen,char *resbuf,int *reslen)
+//{
+//	if(id==-1){
+//		EXECUTE_CPUCARD_CMD(cmd,cmdlen,resbuf,reslen);
+//	}else{
+//		EXECUTE_PSAM_CMD(cmd,cmdlen,resbuf,reslen);
+//	}
+//}
+//static int card_open(HX_DEV *d,const char *param)
+//{
+//	if(d->pdev->devid==-1){
+//		int type;
+//		if(find_card(&type)){
+//			hx_dbge(0,"find no card.\n");
+//			return -1;
+//		}else{
+//			hx_dbgi(0,"card found,type=%d\n",type);
+//			return 0;
+//		}
+//	}else{
+//		int bps = 9600;
+//		sscanf(param,"%u",&bps);
+//		if(PsamInit(d->pdev->devid,bps)){
+//			hx_dbge(0,"psam card init falure.bps=%u\n",bps);
+//			return -1;
+//		}
+//		hx_dbgi(0,"psam card init ok\n");
+//		return 0;
+//	}
+//	return 0;
+//}
+//static int card_write(HX_DEV *d,const void *buf,int _size)
+//{
+//	memset(card_res_buf,0,256);
+//	card_res_len = 0;
+//	card_cmd(d->pdev->devid,buf,_size,card_res_buf,&card_res_len);
+//	return _size;
+//}
+//static int card_read(HX_DEV *d,void *buf,int _size)
+//{
+//	memcpy(buf,card_res_buf,card_res_len);
+//	return card_res_len;
+//}
+//const DEV_DRV_T drv_card = {
+//	.open = card_open,
+//	.read = card_read,
+//	.write = card_write,
+//};
+//const DEV_T cdev_tbl[] = {
+//	{"psam0",0,&drv_card},
+//	//{"psam1",1,&drv_card},
+//	{"card",-1,&drv_card},
+//};
+
+static int psamcard_cmd(int id,const char *cmd,int cmdlen,char *resbuf,int *reslen)
+{
+	return EXECUTE_PSAM_CMD(cmd,cmdlen,resbuf,reslen);
+}
+
+static int ll_cpucard_cmd(const char *cmd,int cmdlen,char *resbuf,int *reslen)
+{
+	return EXECUTE_CPUCARD_CMD(cmd,cmdlen,resbuf,reslen);
+}
+static char psam_buff[256+2]={0};
+static int psam_buff_len=0;
+static int psam_read(HX_DEV *dev,void *buf,int size)
+{
+	int res = psam_buff_len;
+	if(psam_buff_len>0){
+		memcpy(buf,psam_buff,psam_buff_len);
+		psam_buff_len = 0;
+		return res;
+	}
+	return -1;
+}
+static int psam_write(HX_DEV *dev,const void *buf, int size)
+{
+	psam_buff_len = 0;
+	int res = psamcard_cmd(dev->pdev->devid,buf,size,(void*)(psam_buff+2),&psam_buff_len);
+	HX_MSB_W2B(res,psam_buff);
+	return size;
+}
+
+DEV_DRV_T psam_drv = {
+	//.open = psam_open,
+	.read = psam_read,
+	.write = psam_write,
+	//.close = psam_close,
+};
+//--------------------------------------------------------------
+static char card_buff[256+2]={0};
+static int card_buff_len=0;	
+static int card_read(HX_DEV *dev,void *buf,int size)
+{
+	int res = card_buff_len;
+	if(card_buff_len>0){
+		memcpy(buf,card_buff,card_buff_len);
+		card_buff_len = 0;
+		return res;
+	}
+	return -1;
+}
+static int card_write(HX_DEV *dev,const void *buf, int size)
+{
+	card_buff_len = 0;
+	int res = ll_cpucard_cmd(buf,size,(void*)(card_buff+2),&card_buff_len);
+	HX_MSB_W2B(res,card_buff);
+	return size;
+}
+
+DEV_DRV_T card_drv = {
+	//.open = psam_open,
+	.read = card_read,
+	.write = card_write,
+	//.close = psam_close,
+};
+//------------------------------------------------------------
+const DEV_T cdev_tbl[] = {
+	{"psam0",0,&psam_drv},
+	{"psam1",1,&psam_drv},
+	{"psam2",2,&psam_drv},
+	{"card",0,&card_drv},
+};
 
 int brd_init(void)
 {
@@ -280,10 +441,24 @@ int brd_init(void)
 	hx_register_char_device(&cdev_sbio);
 	
 	hx_register_uart_device(&cdev_at_uart);
+	
+	//sim800c
 	hx_register_char_device(&cdev_at_io_pwr);
 	hx_register_char_device(&cdev_at_io_rst);
-	hx_register_char_device((DEV_T*)&g_cdev_sim800c);
+	//sim7100c
+	hx_register_char_device(&cdev_at_io_pwr_sim7100c);
+	hx_register_char_device(&cdev_at_io_rst_sim7100c);
+	hx_register_char_device((DEV_T*)&g_cdev_me3630_c1a);
+	hx_register_char_device((DEV_T*)&g_cdev_me3630_c1b);
 	
+	
+	hx_register_char_device((DEV_T*)&g_cdev_sim800c);
+	hx_register_char_device((DEV_T*)&g_cdev_sim7600c);
+	
+	
+	for(int i=0;i<sizeof(cdev_tbl)/sizeof(cdev_tbl[0]);i++){
+		hx_register_char_device(&cdev_tbl[i]);
+	}
 	sub_brd_init();
 	return 0;
 }

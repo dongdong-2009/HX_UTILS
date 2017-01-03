@@ -52,6 +52,7 @@ typedef struct UART_DRIVER_T {
  * inner call
  */
 extern int hxd_uart_open(HX_DEV *dev,const char *param);
+extern int hxd_uart_poll(HX_DEV *dev,void *vp,int ip);
 extern int hxd_uart_read(HX_DEV *dev,void *buf,int _size);
 extern int hxd_uart_write(HX_DEV *dev,const void *buf, int size);
 extern int hxd_uart_close(HX_DEV *dev);
@@ -65,6 +66,7 @@ extern int hxd_uart_close(HX_DEV *dev);
 	.read = hxd_uart_read,		\
 	.write = hxd_uart_write,	\
 	.close = hxd_uart_close,	\
+	.poll = hxd_uart_poll,		\
 }
 
 /*

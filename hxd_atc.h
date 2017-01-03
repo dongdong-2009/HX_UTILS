@@ -58,8 +58,12 @@ struct NET_PARAM_T {
 	char apn[32];
 	uint8_t rm_ip[4];
 	uint16_t rm_port;
-	
 	uint8_t lc_ip[4];
+	char w_ssid[33];
+	char w_passwd[33];
+	uint8_t mask[4];
+	uint8_t gateway[4];
+	int dhcp_en;
 };
 
 /*
@@ -102,6 +106,8 @@ extern void atc_put(const  char *s);
 extern void atc_puts(const  char *s);
 extern int atc_printf(const char *format, ...);
 
+#define ATCMD_DELAY(ms)	 	{"DELAY",NULL,ms,-1,NULL,}
+
 /*
 */
 extern void nic_pwr(int level);
@@ -111,14 +117,17 @@ extern void nic_rst(int level);
 /// NICs
 extern const struct HX_NIC_T nic_sim800c;
 extern const struct HX_NIC_T nic_sim7100c;
-extern const struct HX_NIC_T nic_me3630;
+extern const struct HX_NIC_T nic_me3630_pid_c1a;
+extern const struct HX_NIC_T nic_me3630_pid_c1b;
 extern const struct HX_NIC_T nic_mg3732;
 extern const struct HX_NIC_T nic_ne4110s;
 extern const struct HX_NIC_T nic_sim7600c;
 
-
-
-extern const ATC_DEV_T g_cdev_sim800c;
+//common param instance, 
+//use self define to support multy nic in one process
+extern struct NET_PARAM_T g_net_param;
+//driver for use
+extern const DEV_DRV_T hx_atc_drv;
 
 #endif
 

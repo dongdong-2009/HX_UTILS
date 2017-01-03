@@ -54,7 +54,7 @@ uint cpu_ioval(int port)
 }
 void cpu_ioctrl(int port,uint val)
 {
-	*(iotbl[port].IOPIN) |= val;
+	*(iotbl[port].IOPIN) = val;
 }
 void cpu_ioclr(int port,uint pin)
 {

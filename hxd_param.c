@@ -38,14 +38,20 @@ int hxd_param_read(HX_DEV *dev,void *buf,int _size)
 	}
 	return -1;
 }
-int _param_write_item(HX_DEV *dev,char *item)
+int _param_write_item(HX_DEV *dev,const char *s)
 {
-	if(!item || item[0]==0)
+	if(!s || s[0]==0)
 		return -9;
+	char item[64] = {0};
+	strncpy(item,s,63);
 	int res;
 	char *ps;
-	char *lv = strtok_r(item,"=",&ps);
-	char *rv = strtok_r(NULL,"=",&ps);
+	const char *lv = strtok_r(item,"=",&ps);
+	const char *rv = strtok_r(NULL,"=",&ps);
+	if(lv==NULL)
+		return -10;
+	if(rv==NULL)
+		rv = "";
 	const PARAM_DEV_T *pdev = (const PARAM_DEV_T *)(dev->pdev);
 	const PARAM_ITEM_T *g_param_tbl = pdev->tbl;
 	int g_param_count = pdev->count;
@@ -67,10 +73,9 @@ int _param_write_item(HX_DEV *dev,char *item)
 int hxd_param_write(HX_DEV *dev,const void *buf, int size)
 {
 	int res;
-	char s[512];
 	if(size>(512-1) || size<=0)
 		return -9;
-	s[512-1]=0;
+	char s[512] = {0};
 	memcpy(s,buf,size);
 	char *ps;
 	char *p;

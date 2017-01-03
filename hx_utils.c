@@ -120,28 +120,39 @@ int hx_str2value(const char *s, const char *value_type, void *vres)
     char fmt[10] = {0};
     int count = -1;
     char split_chars[5] = {0};
-    if(!s)
-        return -2;
-    char str[128];
-    strncpy(str,s,127);
-    str[127] = 0;
+	if(!s)
+		return -1;
+    char str[128] = {0};
+	strncpy(str,s,127);
     int res = sscanf(value_type,"%s %d %s",fmt,&count,split_chars);
     if(res<=0)
         return -1;
     if(strcmp(fmt,"bcd")==0 || strcmp(fmt,"bin")==0) {
+		if(str[0]==0)
+			return -2;
         if(count<=0)
             return -3;
-        hx_hexcode2bin(str,strlen(str),vres);
+		int l = strlen(str);
+		if(l>count){
+			hx_dbge(0,"%s:bcd too long,%u>%u\n",
+				__FUNCTION__,l,count);
+			l=count;
+		}
+        hx_hexcode2bin(str,l,vres);
         return 0;
     } else if(strcmp(fmt,"asc")==0) {
         if(count<0)
             return -3;
-        if(count>0)
-            memcpy(vres,str,count);
-        else
+        if(count>0){
+			if(str[0]==0)
+				return -2;
+			memcpy(vres,str,count);
+        }else
             strcpy(vres,str);
         return 0;
     } else if(strcmp(fmt,"msb")==0) {
+		if(str[0]==0)
+			return -2;
         uint64_t v;
         sscanf(str,"%llu",&v);
         if(count==2)
@@ -154,6 +165,8 @@ int hx_str2value(const char *s, const char *value_type, void *vres)
             return -3;
         return 0;
     } else if(strcmp(fmt,"lsb")==0) {
+		if(str[0]==0)
+			return -2;
         uint64_t v;
         sscanf(str,"%llu",&v);
         if(count==2)
@@ -184,9 +197,10 @@ int hx_str2value(const char *s, const char *value_type, void *vres)
             return -5;
         }
         int size = 0;
-        if((strcmp(fmt,"%s")==0))
+        if((strcmp(fmt,"%s")==0)){
+			count = 1;
             size = 0;
-        else if(strstr(fmt,"d")||strstr(fmt,"i")||strstr(fmt,"u")) {
+		}else if(strstr(fmt,"d")||strstr(fmt,"i")||strstr(fmt,"u")) {
             if(strstr(fmt,"hh"))
                 size = 1;
             else if(strstr(fmt,"h"))
@@ -198,7 +212,7 @@ int hx_str2value(const char *s, const char *value_type, void *vres)
         } else {
             //...
         }
-        if(count>0) {
+        if(count>1) {
             char *cvres = vres;
             char *p = strtok(str,split_chars);
             int i = 0;

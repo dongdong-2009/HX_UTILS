@@ -227,17 +227,8 @@ next2:
 	return 0;
 }
 
-static const HX_ATARG_T defarg = {
-	.rm_ip = "180.89.58.27",
-	.rm_port = 9020,
-	.w_ssid = "whyyy",
-	.w_passwd = "yy123456789",
-};
-
-static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
+static int _init(const struct HX_NIC_T *this)
 {
-	const HX_ATARG_T *pa = (const HX_ATARG_T*)arg;
-	atc_default_init(this,pstep,arg);
 	char buff[512];
 	char *p = buff;
 	p += sprintf(
@@ -245,15 +236,19 @@ static int _init(const struct HX_NIC_T *this, int *pstep, HX_ATARG_T *arg)
 		"&sta_psk=%s"
 		"&socketA_destport=%u"
 		"&socketA_destip=%s",
-		pa->w_ssid,pa->w_passwd,(unsigned)(pa->rm_port),pa->rm_ip);
+		g_net_param.w_ssid,
+		g_net_param.w_passwd,
+		(unsigned)(g_net_param.rm_port),
+		g_net_param.rm_ip);
 	rak415_init(default_params);
 	rak415_init(buff);
 	return 0;
 }
 
-static void _reset(const struct HX_NIC_T *this) 
+static int _reset(const struct HX_NIC_T *this) 
 {
 	 rak415_reset();
+	return 0;
 }
 
 static int _state(void)
@@ -261,12 +256,19 @@ static int _state(void)
 	return rak415_rssi();
 }
 
+static const struct NET_PARAM_T defprm = {
+	.rm_ip = {180,89,58,27},
+	.rm_port = 9020,
+	.w_ssid = "whyyy",
+	.w_passwd = "yy123456789",
+};
+
 const struct HX_NIC_T nic_rak415 = {
-	.default_arg = &defarg,
+	.default_param = &defprm,
 	.at_tbl = NULL,
 	.at_tbl_count = 0,
 	.init = _init,
 	.reset = _reset,
-	.state = _state,
+	//.state = _state,
 };
 

@@ -10,17 +10,23 @@
 #include "string.h"
 
 /*
-	s is param whit asc 
+s is param whit asc: "<mode>[,pin_mask]"
+	"1,FFFFFFFF" all port set output(mode 1)
 */
 int hxd_ioport_open(HX_DEV *dev,const char *s)
 {
 	const DEV_T *pdev = dev->pdev;
 	const IOPORT_DRV_T *drv = (const IOPORT_DRV_T *)pdev->driver;
 	uint port = pdev->devid;
-	int mode = 1;
-	if(s || s[0])
+	int mode = 0;
+	uint32_t pin = 0xFFFFFFFF;
+	if(s && s[0]){
+		sscanf(s,"%u,%X",&mode,&pin);
 		mode = s[0] - '0';
-	drv->iodesc->iomode(port,0xFFFFFFFFu,mode);
+	}else{
+		return 0;
+	}
+	drv->iodesc->iomode(port,pin,mode);
 	return 0;
 }
 /*
@@ -32,7 +38,7 @@ int hxd_ioport_read(HX_DEV *dev,void *buf,int size)
 	const DEV_T *pdev = dev->pdev;
 	const IOPORT_DRV_T *drv = (const IOPORT_DRV_T *)pdev->driver;
 	uint port = pdev->devid;
-	*(unsigned int*)buf = drv->iodesc->ioval(port);
+	HX_MSB_DW2B(drv->iodesc->ioval(port),buf);
 	return 4;
 }
 int hxd_ioport_write(HX_DEV *dev,const void *buf, int size)
@@ -40,7 +46,7 @@ int hxd_ioport_write(HX_DEV *dev,const void *buf, int size)
 	const DEV_T *pdev = dev->pdev;
 	const IOPORT_DRV_T *drv = (const IOPORT_DRV_T *)pdev->driver;
 	uint port = pdev->devid;
-	drv->iodesc->ioctrl(port,*(const unsigned int*)buf);
+	drv->iodesc->ioctrl(port,HX_MSB_B2DW(buf));
 	return 4;
 }
 int hxd_ioport_close(HX_DEV *dev)
