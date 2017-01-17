@@ -1,6 +1,8 @@
 #include "hx_utils.h"
 #include "string.h"
 #include "stdio.h"
+#include "hxd_iopin.h"
+#include "hxd_ioport.h" 
 
 /*
 ========================================================
@@ -118,6 +120,15 @@ static int on_creg(
 	}
 	return -1;
 }
+
+static int check_zipsetprt(
+	int step, 
+	enum ATEVENT_T event,
+	char *buf, 
+	void *msg)
+{
+	return 0;
+}
 static int check_zipcall(
 	int step, 
 	enum ATEVENT_T event,
@@ -212,12 +223,12 @@ static const struct ATCMD_T at_tbl_for_c1b[] = {
 	{"AT+CREG?",			NULL,		2000,		20,			on_creg},
 	{"AT+ZPAS?",				NULL,		2000,		20,			on_zpas},
 //	{"AT$MYNETINFO=1",		"OK",		2000,		5,			0},
-	{"AT$MYNETCON=0,\"APN\",\"cmnet\"",		
+	{"AT$MYNETCON=0,\"APN\",\"CMIOTDLMZK.LN\"",		
 							"OK",		2000,		5,			0},
 	//{"AT$MYNETCON=0,\"USERPWD\",\",\"",		
 	//						"OK",		2000,		5,			0},
 	{"AT$MYNETACT=0,1",		NULL,		2000,		5,			on_netact},
-	{"AT$MYNETCREATE=0,0,0,\"180.89.58.27\",9020,9020",	
+	{"AT$MYNETCREATE=0,0,0,\"10.10.10.45\",700,9020",	
 							NULL,		3000,		5,			on_connect},
 };
 
@@ -235,16 +246,17 @@ static const struct ATCMD_T at_tbl[] = {
 	//{"AT+CGDCONT=1,\"IP\",\"CMNET\"",		
 	//						"OK",		2000,		5, 			0},
 	//AT$MYNETCREATE=1,2,2,"172.22.44.123",5300,3000
+	
 	{"AT+ZIPCFG=cmnet",		"OK",		2000,		5,			0},
 	{"AT+ZIPCALL=1",		NULL,		3000,		10,			check_zipcall,},
-	{"AT+ZIPSETRPT=1",		"OK",		3000,		5,			0},
+	{"AT+ZIPSETRPT=0",		NULL,		3000,		5,			check_zipsetprt},
 	ATCMD_DELAY(3000),
 	{"AT+ZIPOPEN=1,0,180.89.58.27,9020",
 							NULL,		3000,		5,			check_zipstat},	
 };
 
 static int _init_me3630_pid_c1a(const struct HX_NIC_T *this)
-{
+{	
 	nic_pwr(1);
 	nic_rst(1);
 	hx_delay_ms(100);		
@@ -290,10 +302,45 @@ const struct HX_NIC_T nic_me3630_pid_c1b = {
 	.init = _init_me3630_pid_c1b,
 };
 
+static int read_c1a(const struct HX_NIC_T *this,void *buf,int _size)
+{
+	char buff[4096],buff2[2048];
+	int res = atc_gets_noblock(buff,2047);
+	if(res>0){
+		hx_dbg(0,"AT_CMD_RX: [%s]\n",buff);
+		int id,ip[4],port,len;
+		res = sscanf(buff,"+ZIPRECV: %u,%u.%u.%u.%u,%u,%u,%s",
+			&id,ip,ip+1,ip+2,ip+3,&port,&len,buff2);
+		if(res==8){
+			if(len>0 && len<1024){
+				if(len>_size)
+					len = _size;
+				hx_hexcode2bin(buff2,len*2,buf);
+				return len;
+			}
+		}
+	}
+	return -1;
+}
+static int write_c1a(const struct HX_NIC_T *this,const void *buf, int _size)
+{
+	char buff[2048] = {0};
+	char *p = buff;
+	p += sprintf(p,"AT+ZIPSEND=1,");
+	hx_dumphex2str(buf,_size,p);
+	p += _size*2;
+	p += sprintf(p,"\r\n");
+	atc_put(buff);
+	hx_dbg(0,"AT_CMD_TX: [%s]\n",buff);
+	return _size;
+}
+
 const struct HX_NIC_T nic_me3630_pid_c1a = {
 	.default_param = &defprm,
 	.at_tbl = at_tbl,
 	.at_tbl_count = sizeof(at_tbl)/sizeof(at_tbl[0]),
 	.init = _init_me3630_pid_c1a,
+	.read = read_c1a,
+	.write = write_c1a,
 };
 

@@ -51,8 +51,11 @@ static int stdio_read(HX_DEV *dev,void *buf,int size)
 }
 static int stdio_write(HX_DEV *dev,const void *buf, int size)
 {
+	int res;
 	FILE *stdtbl[] = {stdin,stdout,stderr};
-	return fwrite(buf,1,size,stdtbl[dev->pdev->devid]);
+	res = fwrite(buf,1,size,stdtbl[dev->pdev->devid]);
+	fflush(stdtbl[dev->pdev->devid]);
+	return res;
 }
 static int stdio_close(HX_DEV *dev)
 {

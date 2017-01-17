@@ -8,17 +8,19 @@
 #define __DCC_ENABLE_RETARGET__
 #endif
 
-#if 0
-int main(void)
-{
-	for(int i=0;i<16;i++)
-		fprintf((FILE*)i,"stdin");
-	fprintf(stdin,"\r\nstdin");
-	fprintf(stdout,"stdout");
-	fprintf(stderr,"stderr");
-	while(1);
-}
-#endif
+
+//int main(void)
+//{
+//	for(int i=0;i<16;i++)
+//		fprintf((FILE*)i,"stdin");
+//	fprintf(stdin,"\r\nstdin");
+//	fprintf(stdout,"stdout");
+//	fprintf(stderr,"stderr");
+//	fflush(stdout);
+//	while(1);
+//	
+//}
+
 
 
 #ifndef uint
@@ -379,9 +381,12 @@ int fputc(int c, FILE *f){
 	}else{
 		return _fputc(c,f);
 	}
+	
+	//_printf(
 }
 
 #else
 int fgetc(FILE *f){(void*)f;return EOF;}
 int fputc(int c, FILE *f){(void)c;(void)f;return c;}	
 #endif
+

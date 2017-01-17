@@ -3,41 +3,137 @@
 #include "string.h"
 #include "stdio.h"
 
-#define CLCD_PXL_COLS			(240)		/*列像素数*/
-#define CLCD_PXL_ROWS			(128)		/*行像素数*/
-#define CLCD_CHAR_WIDTH			(8)			/*字符宽度*/
-#define CLCD_CHAR_HEIGHT		(16)		/*字符高度*/
+/*
+	CLCD 排列
+	col->
+page||||....|||
+  |	||||....|||
+  V	....
+	||||....|||
+
+地址增长方向: 先col后page
+*/
+
+#define CLCD_PXL_COLS			(240)		/* colume count in pixel*/
+#define CLCD_PXL_ROWS			(128)		/* row count in pixel*/
+#define CLCD_PAGE_SIZE			(8)			/* page size in pixel */
+
+#define CLCD_CHAR_WIDTH			(8)			/* ascii char width in pixel , wchar is double ascii*/
+#define CLCD_CHAR_HEIGHT		(16)		/* char height in pixel */
 #define CLCD_CHAR_COLS			(CLCD_PXL_COLS/CLCD_CHAR_WIDTH)
 #define CLCD_CHAR_ROWS			(CLCD_PXL_ROWS/CLCD_CHAR_HEIGHT)
 
-void hx_clcd_disp_char(int x,int y,char c,int inverse)
+extern void clcd_set_pos(int col,int page);
+extern void clcd_wr_data(unsigned char data);
+extern void *font_ascii(int c);
+extern void *font_wchar(int wc);
+/*
+void clcd_set_pos(int col,int page)
 {
-	unsigned char s[2];
-	s[0] = c;
-	s[1] = 0;
-	dprintf(x*CLCD_CHAR_WIDTH,y,s,inverse,0,30);
+	SetPageAddress(page);
+    SetColumnAddress(col);
+	SetRAMAddress(1); //SET RAM ADDRESS CONTROL
 }
-int hx_clcd_disp_chars(
-	int x,			//列
-	int y,			//行
-	const char *s,	//数据
-	int len,		//数据长度
-	int inverse		//0正常,1反色
+void clcd_wr_data(unsigned char data)
+{
+	write_data(data);
+}
+void *font_ascii(int c)
+{
+    unsigned char j;
+    unsigned int i;
+    WDTFeed();        //喂狗
+    SelectSSTFlash(tkFLASH_NO_2);
+    i=(c-0x20);
+    for(j=0; j<16; j++)
+    {
+        sstFlashRead(ASCstartpage+(i/(tkFLASH_PAGE_SIZE/16)),(16*(i%(tkFLASH_PAGE_SIZE/16)))+j,&LCD_tmp[j],1);
+    }
+    //draw_bmp(col,page,8,2,LCD_tmp,mode,ifmenu);
+    SelectSSTFlash(tkFLASH_NO_1);
+	return LCD_tmp;
+}
+void *font_wchar(int wc)
+{
+	QueryHzk(wc);
+    return LCD_tmp;
+}
+*/
+
+void hx_clcd_draw_bmp(
+	int col,	//colume
+	int page,	//page
+	int cols,	//colume count
+	int pages,	//page count
+	void *bmpdata,	//data
+	int inverse)	//0:normal,1:inverse
+{
+	unsigned char *d = bmpdata;
+	int x=0,y=0;
+	int page_end = page+pages;
+	int col_end = col+cols;
+	for(int p=page;p<page_end;p++){
+		clcd_set_pos(col,p);
+		for(int c=col;c<col_end;c++){
+			char dd = d[y*cols+x];
+			if(inverse)
+				dd = ~dd;
+			clcd_wr_data(dd);
+			x++;
+		}
+		x=0;
+		y++;
+	}
+}
+static void hx_clcd_disp_ascii(int x,int y,char c,int inverse)
+{
+	int page = y * (CLCD_CHAR_HEIGHT/CLCD_PAGE_SIZE);
+	int pages = CLCD_CHAR_HEIGHT/CLCD_PAGE_SIZE;
+	hx_clcd_draw_bmp(x*CLCD_CHAR_WIDTH,page,CLCD_CHAR_WIDTH,pages,
+		font_ascii(c),inverse);
+}
+static void hx_clcd_disp_wchar(int x,int y,unsigned short c,int inverse)
+{
+	int page = y * (CLCD_CHAR_HEIGHT/CLCD_PAGE_SIZE);
+	int pages = CLCD_CHAR_HEIGHT/CLCD_PAGE_SIZE;
+	hx_clcd_draw_bmp(x*CLCD_CHAR_WIDTH,page,CLCD_CHAR_WIDTH*2,pages,
+		font_wchar(c),inverse);
+}
+static int hx_clcd_disp_chars(
+	int x,			//colume
+	int y,			//row
+	const char *s,	//data
+	int len,		//data length
+	int inverse		//0:normal,1:inverse
 )
 {
 	int i;
 	for(i=0;i<len;i++){
-		hx_clcd_disp_char(x+i,y,s[i],inverse);
+		if(s[i]>128){
+			unsigned short wc = (unsigned char)s[i];
+			wc<<=8;
+			wc += (unsigned char)s[i+1];
+			hx_clcd_disp_wchar(x+i,y,wc,inverse);
+			i++;
+		}else{
+			hx_clcd_disp_ascii(x+i,y,s[i],inverse);
+		}
 	}
 	return 0;
 }
+static int _abs(int n)
+{
+	return n<0?-n:n;
+}
 int hx_clcd_disp_str(
-	int x,			//列
-	int y,			//行
-	const char *s,	//数据
-	int align,		//N=0左对齐, N>0右对齐按N个字符数, N<0中间对齐按照-N个字符数
-	int mode,		//0擦除整行,1不擦除
-	int inverse		//0正常,1反色
+	int x,			//colume
+	int y,			//row
+	const char *s,	//data string
+	int align,		//N=0 align left, 
+					//N>0 align right with endian N of a line,
+					//N<0 align middle with endian N of a line
+	int mode,		//0:erase all disp area([x,abs(align)]),1:nothing be erased
+	int inverse		//0:normal,1:inverse
 )
 {
 	int res;
@@ -45,28 +141,46 @@ int hx_clcd_disp_str(
 	char buff[CLCD_CHAR_COLS];
 	memset(buff,' ',CLCD_CHAR_COLS);
 	l = strlen(s);
-	if(l>(CLCD_CHAR_COLS-x))
-		l= CLCD_CHAR_COLS-x;
+	int endx = _abs(align);
+	if(align==0){	//left align end with lcd width
+		endx = CLCD_CHAR_COLS;
+	}else {				//right align endx must less than lcd width
+						//middle align endx must less than lcd width 
+						//and strlen must less than disp area
+		if(endx>CLCD_CHAR_COLS)
+			endx = CLCD_CHAR_COLS;
+	}
+	int dl = endx-x;	//show area length
+	//check data len
+	if(l>dl)
+		l=dl;
+	//calc pos of first disp char
 	if(align==0)
 		p=x;
-	else if(align>0)
-		p=x+align-l;
-	else if(align<0){
-		int hl = l/2;
-		hl += (hl*2==l)?0:1;
-		if(x-hl<0 || x+hl>CLCD_CHAR_COLS)
-			return -1;
-		p = x-hl;
-	}	
-	if(mode){
-		memcpy(buff+p,s,l);
-		res = hx_clcd_disp_chars(0,y,buff,CLCD_CHAR_COLS,inverse);
+	else if(align>0)	//right align
+		p=endx-l;
+	else if(align<0)	//middle align
+		p = (dl-l)/2;
+	
+	if(mode==0){
+		memcpy(buff+p,s,l);	
+		res = hx_clcd_disp_chars(0,y,buff,dl,inverse);
 	}else{
-		res = hx_clcd_disp_chars(p,y,buff,CLCD_CHAR_COLS,inverse);
+		res = hx_clcd_disp_chars(p,y,s,l,inverse);
 	}
 	return res;
 }
-void hx_clcd_disp_str2(int x,int y,const char *s,int align,int mode)
+
+void hx_clcd_disp_text(char *dbuf)
 {
-    hx_clcd_disp_str(x,y,s,align,mode,0);
+	lcd_clear();
+	char *e;
+	char *p = strtok_r(dbuf,"\n",&e);
+	p = hx_strtrim2(p,"\r");
+	int i=0;
+	while(p && i<8){
+		lcd_disp_at(i++, 0, p, -1, 0);
+		p = strtok_r(NULL,"\n",&e);
+		p = hx_strtrim2(p,"\r");
+	}
 }

@@ -51,6 +51,9 @@ struct HX_NIC_T
 	const int at_tbl_count;
 	int (*init)(const struct HX_NIC_T *this);
 	int (*reset)(const struct HX_NIC_T *this);
+	int (*read)(const struct HX_NIC_T *this,void *buf,int _size);
+	int (*write)(const struct HX_NIC_T *this,const void *buf, int size);
+
 };
 
 struct NET_PARAM_T {

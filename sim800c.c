@@ -63,17 +63,37 @@ static const struct ATCMD_T at_tbl[] = {
 	{"AT+CSQ",				NULL,		2000,		20, 		check_csq},
 	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
 	//AT+CIPCSGP=1,"cmnet","",""
-	{NULL/*"AT+CIPCSGP=1,\"cmnet\",\"\",\"\""*/,		
+	{"AT+CIPCSGP=1,\"CMIOTDLMZK.LN\",\"\",\"\"",		
 							"OK",		2000,		5, 			config_ap},
 	{"AT+CIPSHUT",			"SHUT OK",	2000,		5, 			0},
 	//180.89.58.27:9020
-//	{"AT+CIPSTART=\"TCP\",\"119.75.218.70\",\"80\"",	
-//							NULL/*"CONNECT"*/,	5000,5, 		check_connect},
+	{"AT+CIPSTART=\"TCP\",\"10.10.10.45\",\"700\"",	
+							"CONNECT",	5000,5, 		check_connect},
 	//AT+CIPSTART="TCP","180.89.58.27","9020"
 	//{"AT+CIPSTART=\"TCP\",\"119.75.218.70\",\"80\"",	
-	{NULL/*"AT+CIPSTART=\"TCP\",\"180.89.58.27\",\"9020\""*/,	
-							NULL/*"CONNECT"*/,	30000,5, 		check_connect},
+	//{NULL/*"AT+CIPSTART=\"TCP\",\"180.89.58.27\",\"9020\""*/,	
+	//						NULL/*"CONNECT"*/,	30000,5, 		check_connect},
 };
+
+//static const struct ATCMD_T at_tbl[] = {
+//	//cmd					res			timeout		trytimes	check_res_proc
+//	{"AT",					"AT",		2000,		20, 		0},
+//	{"ATE0",				"OK",		2000,		20, 		0},
+//	{"AT+CSQ",				NULL,		2000,		20, 		check_csq},
+//	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
+//	//AT+CIPCSGP=1,"cmnet","",""
+//	{NULL/*"AT+CIPCSGP=1,\"cmnet\",\"\",\"\""*/,		
+//							"OK",		2000,		5, 			config_ap},
+//	{"AT+CIPSHUT",			"SHUT OK",	2000,		5, 			0},
+//	//180.89.58.27:9020
+////	{"AT+CIPSTART=\"TCP\",\"119.75.218.70\",\"80\"",	
+////							NULL/*"CONNECT"*/,	5000,5, 		check_connect},
+//	//AT+CIPSTART="TCP","180.89.58.27","9020"
+//	//{"AT+CIPSTART=\"TCP\",\"119.75.218.70\",\"80\"",	
+//	{NULL/*"AT+CIPSTART=\"TCP\",\"180.89.58.27\",\"9020\""*/,	
+//							NULL/*"CONNECT"*/,	30000,5, 		check_connect},
+//};
+
 
 static int _init(const struct HX_NIC_T *this)
 {

@@ -73,6 +73,7 @@ char* hx_dumphex(const void* bin,int bin_len,void *asc)
 	}
 	return asc;
 }
+
 // "\x12\x34" => "1234"
 char* hx_dumphex2str(const void* bin,int bin_len,void *asc)
 {

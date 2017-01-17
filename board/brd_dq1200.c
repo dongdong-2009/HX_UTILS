@@ -9,6 +9,9 @@
 #include "hxd_ioport.h" 
 #include "string.h"
 
+#define SUB_BRD_TRYS	(5)
+
+
 HX_DEV g_u0_com;
 
 extern unsigned int __get_fpclk(void);
@@ -29,45 +32,57 @@ uint mb_ioval(uint port)
 static const struct IODESC_T mbio = {mb_iomode,mb_ioctrl,mb_ioval};
 
 //-----------------------------------------------------------------
+
 void sb_iomode(uint port,uint pin,uint mode)
 {
-	HX_DBG_PRINTLN("SB IOMODE port=%u pin=%x. mode=%u",port,pin,mode);
-	hxl_printf(&g_u0_com,"$hx+iomode+3+%x+%x+%x\r\n",
-		port,pin,mode);
-	char buff[64];
-	if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK")>0)
-		HX_DBG_PRINTLN("OK.");
-	else
-		HX_DBG_PRINTLN("ERROR.");
+	int trys = SUB_BRD_TRYS;
+	while(trys-->0){
+		HX_DBG_PRINTLN("SB IOMODE port=%u pin=%x. mode=%u",port,pin,mode);
+		hxl_printf(&g_u0_com,"$hx+iomode+3+%x+%x+%x\r\n",
+			port,pin,mode);
+		char buff[64];
+		if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK")>0){
+			HX_DBG_PRINTLN("OK.");
+			return;
+		}
+	}
+	hx_dbge(0,"ERROR.\n");
 }
 void sb_ioctrl(uint port,uint val)
 {
-	HX_DBG_PRINTLN("SB IOCTRL port=%u val=%x.",port,val);
-	hxl_printf(&g_u0_com,"$hx+ioctrl+2+%x+%x\r\n",
-		port,val);
-	char buff[64];
-	if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK")>0)
-		HX_DBG_PRINTLN("OK.");
-	else
-		HX_DBG_PRINTLN("ERROR.");	
+	int trys = SUB_BRD_TRYS;
+	while(trys-->0){
+		HX_DBG_PRINTLN("SB IOCTRL port=%u val=%x.",port,val);
+		hxl_printf(&g_u0_com,"$hx+ioctrl+2+%x+%x\r\n",
+			port,val);
+		char buff[64];
+		if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK")>0){
+			HX_DBG_PRINTLN("OK.");
+			return;
+		}
+	}
+	hx_dbge(0,"ERROR.\n");	
 }
 
 uint sb_ioval(uint port)
 {
-	int res ;
-	HX_DBG_PRINTLN("SB IOVAL port=%u.",port);
-	hxl_printf(&g_u0_com,"$hx+ioval+1+%x\r\n",port);
-	char buff[64];
-	res = hxl_gets_timeout3(&g_u0_com,buff,64,200,"res=");
-	if(res>0){
-		uint val;
-		res = sscanf(buff,"res=%x",&val);
-		if(res==1){
-			HX_DBG_PRINTLN("GET %s.",buff);
-			return val;
+	int trys = SUB_BRD_TRYS;
+	while(trys-->0){
+		int res ;
+		HX_DBG_PRINTLN("SB IOVAL port=%u.",port);
+		hxl_printf(&g_u0_com,"$hx+ioval+1+%x\r\n",port);
+		char buff[64];
+		res = hxl_gets_timeout3(&g_u0_com,buff,64,200,"res=");
+		if(res>0){
+			uint val;
+			res = sscanf(buff,"res=%x",&val);
+			if(res==1){
+				HX_DBG_PRINTLN("GET %s.",buff);
+				return val;
+			}
 		}
 	}
-	HX_DBG_PRINTLN("ERROR default return 0.");
+	hx_dbge(0,"ERROR default return 0.\n");
 	return 0;
 }
 
@@ -99,14 +114,10 @@ static const IOPIN_DRV_T iopin_drv = {
 	.tbl_count = sizeof(g_iotbl)/sizeof(g_iotbl[0]),
 };
 static const DEV_T cdev_at_io_pwr = 
-	{"at_io_pwr",(_IOPIN_ID(1,0,13)|PIN_ATTR_INVERSE),(const DEV_DRV_T*)&iopin_drv};
-static const DEV_T cdev_at_io_rst = 
-	{"at_io_rst",(_IOPIN_ID(1,0,6)|PIN_ATTR_INVERSE),(const DEV_DRV_T*)&iopin_drv};
-	
-static const DEV_T cdev_at_io_pwr_sim7100c = 
 	{"at_io_pwr",(_IOPIN_ID(1,0,7)),(const DEV_DRV_T*)&iopin_drv};
-static const DEV_T cdev_at_io_rst_sim7100c = 
+static const DEV_T cdev_at_io_rst = 
 	{"at_io_rst",(_IOPIN_ID(1,0,0)),(const DEV_DRV_T*)&iopin_drv};
+
 	
 //--------------------------------------------------------
 extern volatile unsigned __g_cpu_tickcount;
@@ -211,8 +222,8 @@ static const UART_DEV_T cdev_uart0 = {
 	.dev = {"u0_com",0,&uart_drv},
 	.txbuf = uart0_txbuf,
 	.rxbuf = uart0_rxbuf,
-	.txbuf_size = 128,
-	.rxbuf_size = 128,
+	.txbuf_size = 1024,
+	.rxbuf_size = 1024,
 	.default_bps = 115200,
 	.prv = &uart0_prv,
 };
@@ -220,8 +231,8 @@ static const UART_DEV_T cdev_at_uart = {
 	.dev = {"at_uart",0,&uart_drv},
 	.txbuf = uart0_txbuf,
 	.rxbuf = uart0_rxbuf,
-	.txbuf_size = 128,
-	.rxbuf_size = 128,
+	.txbuf_size = 1024,
+	.rxbuf_size = 1024,
 	.default_bps = 115200,
 	.prv = &uart0_prv,
 };
@@ -445,9 +456,8 @@ int brd_init(void)
 	//sim800c
 	hx_register_char_device(&cdev_at_io_pwr);
 	hx_register_char_device(&cdev_at_io_rst);
+	
 	//sim7100c
-	hx_register_char_device(&cdev_at_io_pwr_sim7100c);
-	hx_register_char_device(&cdev_at_io_rst_sim7100c);
 	hx_register_char_device((DEV_T*)&g_cdev_me3630_c1a);
 	hx_register_char_device((DEV_T*)&g_cdev_me3630_c1b);
 	

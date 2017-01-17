@@ -136,7 +136,7 @@ void log_putchar(int c)
 		int ms = n % 1000;
 		struct tm *tm = localtime(&t);
 		fprintf(flog, "[%02u:%02u:%02u:%03u]\t",
-			tm->tm_hour,tm->tm_sec,tm->tm_sec,ms);
+			tm->tm_hour,tm->tm_min,tm->tm_sec,ms);
 	}
 	fflush(flog);
 }
@@ -201,7 +201,7 @@ DWORD WINAPI ThreadFun(LPVOID pM)
 int main(int argc, char *argv[])
 {
 	signal(SIGINT, 0);
-	printf("jlink_dcc_view_V0.3 by houxd ,build %s %s\r\n",__DATE__,__TIME__);
+	printf("jlink_dcc_view_V0.5 by houxd ,build %s %s\r\n",__DATE__,__TIME__);
 	int res;
 	res = load_jlinkarm_dll();
 	if (res) {
@@ -252,6 +252,7 @@ int main(int argc, char *argv[])
 	char device[64]="";
 	GetPrivateProfileString("JLINKARM", "device", "", device, 64, config_file);
 	UINT32 speed = GetPrivateProfileInt("JLINKARM", "speed", 200, config_file);
+	//UINT32 fast_mode = GetPrivateProfileInt("JLINKARM", "fast_mode", 1, config_file);
 
 	printf("Open JLink ... ");
 	JLINKARM_Open();
@@ -283,27 +284,85 @@ int main(int argc, char *argv[])
 		log_tickcount = GetTickCount();
 		time(&log_time);
 		log_putchar('\n');	//record a time label
+	again:
 		while (1) {
 			//while (in_api);
 			//in_api = 1;
-			res = JLINKARM_ReadDCC(buf, 256, 2);
+			res = JLINKARM_ReadDCC(buf, 1, 2);
 			//in_api = 0;
-			if (res) {
+			if (res == 1) {
 				for (int i = 0; i < res; i++) {
 					UINT32 data = buf[i];
-					if ((data>>24) != 0x54)
-						continue;
-					int ch = (data >> 8) & 0xFFu;
-					int chbak = change_ch(ch);
-					int c = data & 0xFFu;
-					if (ch >= 0 && ch <= 0x7F) {
-						putchar(c);
-						log_putchar(c);
+					if ((0xFE == (0xFFu & (data >> 24))))
+					{
+						static UINT32 color, len, sum;
+						
+						char rbf[1024];
+						if ((0xC1 == (0xFFu & (data >> 16))))
+						{
+							color = 0xFFu & (data >> 8);
+							len = 0xFFu & (data);
+							int l = len >> 2 << 2;
+							for (int i = 0; i < l; i += 4)
+							{
+								res = JLINKARM_ReadDCC(buf, 1, 10);
+								if (res != 1)
+									goto again;
+								data = buf[0];
+								rbf[i] = (data >> 24) & 0xFFu;
+								rbf[i + 1] = (data >> 16) & 0xFFu;
+								rbf[i + 2] = (data >> 8) & 0xFFu;
+								rbf[i + 3] = (data >> 0) & 0xFFu;
+							}
+							if (len - l)
+							{
+								res = JLINKARM_ReadDCC(buf, 1, 10);
+								if (res != 1)
+									goto again;
+								data = buf[0];
+								rbf[l] = (data >> 24) & 0xFFu;
+								rbf[l + 1] = (data >> 16) & 0xFFu;
+								rbf[l + 2] = (data >> 8) & 0xFFu;
+								rbf[l + 3] = (data >> 0) & 0xFFu;
+							}
+							res = JLINKARM_ReadDCC(buf, 1, 10);
+							if (res != 1)
+								goto again;
+							data = buf[0];
+							if ((data >> 24) & 0xFFu != 0xF0)
+								goto again;
+
+							sum = (data >> 16) & 0xFFu;
+
+							int chbak = change_ch(color);
+							for (int i = 0; i < len; i++) {
+								int c = rbf[i] & 0xFFu;
+								putchar(c);
+								log_putchar(c);
+								
+							}
+							change_ch(chbak);
+
+						}
 					}
-					change_ch(chbak);
+					else
+					{
+						//UINT32 data = buf[i];
+						if ((data >> 24) != 0x54)
+							continue;
+						int ch = (data >> 8) & 0xFFu;
+						int chbak = change_ch(ch);
+						int c = data & 0xFFu;
+						if (ch >= 0 && ch <= 0x7F) {
+							putchar(c);
+							log_putchar(c);
+						}
+						change_ch(chbak);
+
+					}
 				}
 			}
-			Sleep(10);
+			//Sleep(10);
 		}
 
 		WaitForSingleObject(handle, INFINITE);

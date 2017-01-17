@@ -117,27 +117,94 @@ static int on_netopen(
 		res = sscanf(buf,"+NETOPEN: %d",&a);
 		if(res==1 && a==0)
 			return 0;
+		
+		if(strstr(buf,"Network is already opened"))
+			return 0;
 	}
 	return -1;
 }
 
+static int on_creg(
+	int step, 
+	enum ATEVENT_T event,
+	char *buf, 
+	void *msg)
+{
+	int res;
+	//+CSQ: %d,%d
+	if(buf[0] == '+'){
+		int a=0,b=0;
+		res = sscanf(buf,"+CREG: %d,%d",&a,&b);
+		if(res==2 && (b==1||b==5))
+			return 0;
+	}
+	return -1;
+}
+
+//static const struct ATCMD_T at_tbl[] = {
+//	//cmd					res			timeout		trytimes	check_res_proc
+//	{"ATE1",				"OK",		2000,		20, 		0},
+//	{"ATE0",				"OK",		2000,		20, 		0},
+//	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
+//	{"AT+CGDCONT=1,\"IP\",\"apn\"",		
+//							"OK",		2000,		5, 			0},
+//	{"AT+CGSOCKCONT=1,\"IP\",\"cmnet\"",		
+//							"OK",		2000,		5, 			0},
+//	//{"AT+CSOCKSETPN=1",		"OK",		2000,		5, 			0},
+//	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
+//	ATCMD_DELAY(2000),
+//	{"AT+NETOPEN",		 	NULL,		2000,		5, 			on_netopen},
+//	{"AT+CIPOPEN=0,\"TCP\",\"180.89.58.27\",9020",	
+//							NULL/*"CONNECT"*/,	30000,5, 		on_connect},
+//};
+//// at+cnsmod?
 static const struct ATCMD_T at_tbl[] = {
 	//cmd					res			timeout		trytimes	check_res_proc
 	{"ATE1",				"OK",		2000,		20, 		0},
 	{"ATE0",				"OK",		2000,		20, 		0},
+	{"AT+CNMP=2",			"OK",		2000,		20,			0},
+	{"AT+CPIN?",			"+CPIN: READY",		2000,		20, 0},
 	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
+	{"AT+CREG?",			NULL,		2000,		20,			on_creg},
 	{"AT+CGDCONT=1,\"IP\",\"apn\"",		
 							"OK",		2000,		5, 			0},
-	{"AT+CGSOCKCONT=1,\"IP\",\"cmnet\"",		
+	{"AT+CGSOCKCONT=1,\"IP\",\"CMIOTDLMZK.LN\"",		
 							"OK",		2000,		5, 			0},
 	//{"AT+CSOCKSETPN=1",		"OK",		2000,		5, 			0},
 	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
-	ATCMD_DELAY(2000),
-	{"AT+NETOPEN",		 	NULL,		2000,		5, 			on_netopen},
-	{"AT+CIPOPEN=0,\"TCP\",\"180.89.58.27\",9020",	
+	ATCMD_DELAY(5000),
+	{"AT+NETOPEN",		 	NULL,		30000,		5, 			on_netopen},
+	{"AT+CIPOPEN=0,\"TCP\",\"10.10.10.45\",700",	
 							NULL/*"CONNECT"*/,	30000,5, 		on_connect},
 };
 
+//static const struct ATCMD_T at_tbl[] = {
+//	//cmd					res			timeout		trytimes	check_res_proc
+//	{"ATE1",				"OK",		2000,		20, 		0},
+//	{"ATE0",				"OK",		2000,		20, 		0},
+//	{"AT+CNMP=2",			"OK",		2000,		20,			0},
+//	{"AT+CPIN?",			"+CPIN: READY",		2000,		20, 0},
+//	{"AT+CSQ",				NULL,		2000,		20, 		on_csq},
+//	{"AT+CREG?",			NULL,		2000,		20,			on_creg},
+//	{"AT+CGDCONT=1,\"IP\",\"apn\"",		
+//							"OK",		2000,		5, 			0},
+//	{"AT+CGSOCKCONT=1,\"IP\",\"DLMZK2.LN\"",		
+//							"OK",		2000,		5, 			0},
+//	//{"AT+CSOCKSETPN=1",		"OK",		2000,		5, 			0},
+//	{"AT+CIPMODE=1",		"OK",		2000,		5, 			0},
+//	ATCMD_DELAY(2000),
+//	{"AT+NETOPEN",		 	NULL,		10000,		5, 			on_netopen},
+//	{"AT+CIPOPEN=0,\"TCP\",\"10.10.10.45\",700",	
+//							NULL/*"CONNECT"*/,	30000,5, 		on_connect},
+//};
+/*
+AT+CGDCONT=1,"IP","apn"
+AT+CGSOCKCONT=1,"IP","CMIOTDLMZK.LN"
+AT+CIPMODE=1
+AT+NETCLOSE
+AT+NETOPEN
+AT+CIPOPEN=0,"TCP","10.10.10.45",700
+*/
 static int _init(const struct HX_NIC_T *this)
 {	
 	nic_pwr(0);

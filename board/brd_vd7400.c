@@ -162,13 +162,13 @@ static const UART_DRV_T uart_drv = {
 	.close = uart_close,
 };
 static UART_PRIVATE_T uart0_prv;
-char uart0_txbuf[128],uart0_rxbuf[128];
+char uart0_txbuf[1024],uart0_rxbuf[1024];
 static UART_PRIVATE_T uart1_prv;
-char uart1_txbuf[128],uart1_rxbuf[128];
+char uart1_txbuf[1024],uart1_rxbuf[1024];
 static UART_PRIVATE_T uart2_prv;
-char uart2_txbuf[128],uart2_rxbuf[128];
+char uart2_txbuf[1024],uart2_rxbuf[1024];
 static UART_PRIVATE_T uart3_prv;
-char uart3_txbuf[128],uart3_rxbuf[128];
+char uart3_txbuf[1024],uart3_rxbuf[1024];
 static const UART_DEV_T cdev_uart0 = {
 	.dev = {"u0_com",0,&uart_drv},
 	.txbuf = uart0_txbuf,
@@ -182,8 +182,8 @@ static const UART_DEV_T cdev_uart1 = {
 	.dev = {"uart1",1,&uart_drv},
 	.txbuf = uart1_txbuf,
 	.rxbuf = uart1_rxbuf,
-	.txbuf_size = 128,
-	.rxbuf_size = 128,
+	.txbuf_size = 1024,
+	.rxbuf_size = 1024,
 	.default_bps = 115200,
 	.prv = &uart1_prv,
 };
@@ -191,8 +191,8 @@ static const UART_DEV_T cdev_uart2 = {
 	.dev = {"uart2",2,&uart_drv},
 	.txbuf = uart2_txbuf,
 	.rxbuf = uart2_rxbuf,
-	.txbuf_size = 128,
-	.rxbuf_size = 128,
+	.txbuf_size = 1024,
+	.rxbuf_size = 1024,
 	.default_bps = 115200,
 	.prv = &uart2_prv,
 };
@@ -200,8 +200,8 @@ static const UART_DEV_T cdev_uart3 = {
 	.dev = {"u3_485",3,&uart_drv},
 	.txbuf = uart3_txbuf,
 	.rxbuf = uart3_rxbuf,
-	.txbuf_size = 128,
-	.rxbuf_size = 128,
+	.txbuf_size = 1024,
+	.rxbuf_size = 1024,
 	.default_bps = 57600,
 	.prv = &uart3_prv,
 };
@@ -210,8 +210,8 @@ static const UART_DEV_T cdev_at_uart = {
 	.dev = {"at_uart",1,&uart_drv},
 	.txbuf = uart1_txbuf,
 	.rxbuf = uart1_rxbuf,
-	.txbuf_size = 128,
-	.rxbuf_size = 128,
+	.txbuf_size = 1024,
+	.rxbuf_size = 1024,
 	.default_bps = 115200,
 	.prv = &uart1_prv,
 };

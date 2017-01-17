@@ -102,6 +102,9 @@ static int atc_read(HX_DEV *dev,void *buf,int _size)
 	if(nic->at_tbl_count < dev->offset){
 		/*cmd mode need to achive.*/
 	}else{
+		if(nic->read){
+			return nic->read(nic,buf,_size);
+		}
 		UART_DRV_T *udrv = (UART_DRV_T *)(g_at_uart.pdev->driver);
 		if(udrv->cdrv.read)
 			return udrv->cdrv.read(&g_at_uart,buf,_size);
@@ -116,6 +119,9 @@ static int atc_write(HX_DEV *dev,const void *buf, int size)
 	if(nic->at_tbl_count < dev->offset){
 		/*cmd mode need to achive.*/
 	}else{
+		if(nic->write){
+			return nic->write(nic,buf,size);
+		}
 		UART_DRV_T *udrv = (UART_DRV_T *)(g_at_uart.pdev->driver);
 		if(udrv->cdrv.write)
 			return udrv->cdrv.write(&g_at_uart,buf,size);
