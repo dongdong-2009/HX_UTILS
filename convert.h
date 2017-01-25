@@ -65,7 +65,7 @@ extern int hx_value2str(const void* value,const char *format,
 	
 extern unsigned char make_bcc(unsigned char init, const void *data, int len);
 extern unsigned char make_bcc2(const void *data, int len);
-extern unsigned int make_sum(const char *buf, int len);
+extern unsigned char make_sum(const void *buf, int len);
 extern unsigned int make_sum2(unsigned int init,const char *buf, int len);
 
 

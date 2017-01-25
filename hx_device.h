@@ -1,25 +1,72 @@
 #ifndef __HX_DEVICE_H__
 #define __HX_DEVICE_H__
 
+#include "stdarg.h"
+#include "stdint.h"
+
 #pragma anon_unions
 
 #define MAX_DEVICE_COUNT				(64)
 
+typedef const struct __DEV_DRV_T DRIVER_T;
+
+/*
+	describe io
+*/
+typedef struct {
+	uint32_t port;
+	uint32_t pin;
+} IO_t;
+
+/*
+	device type 
+*/
+typedef enum {
+	DT_UNKNOWN = 0,
+	DT_CHAR,
+	DT_UART,
+	
+	DT_BLOCK,
+	
+	DT_INTERFACE,
+	DT_PSAM_IF,
+	DT_ATC_IF,
+} DEVTYPE_T;
 
 /*
 	device instance
 */
 typedef struct __DEV_T{
 	const char *name;
-	int devid;
-	const void *driver;
+	int devid;	
+	DRIVER_T *driver;
+	DEVTYPE_T devtype;
 } DEV_T;
+
+/*
+	interface instance
+*/
+typedef struct __HX_IF_MEMBER{
+	int label;
+	const void *dev;
+} HX_IFMBR;
+typedef struct __HX_INTERFACE {
+	const char *name;
+	int devid;	
+	DRIVER_T *driver;
+	DEVTYPE_T devtype;
+	int count;
+	const HX_IFMBR *members;
+} INF_T;
 
 //externs use, instance of opened device
 typedef struct __HX_DEVICE {
 	int type;		//type and flags
 	int offset;
-	const DEV_T *pdev;
+	union {
+		const DEV_T *pdev;
+		const INF_T *pinf;
+	};
 } HX_DEV;
 
 /*
@@ -48,21 +95,15 @@ typedef struct __DEV_DRV_T{
 	return : =0 is success,others is error
 	*/
 	int (*close)(HX_DEV *dev);
-	
-	int (*poll)(HX_DEV *dev,void *vp,int ip);
+	/*
+		normal return 0;
+		-0xFF is no this call
+		-1 is not surpport cmd
+	*/
+	int (*ioctl)(HX_DEV *dev,int cmd,va_list va);
 	
 } DEV_DRV_T;
 
-
-
-//innner 
-typedef struct __DEV_TBL_T{
-	const DEV_T *dev;
-	int dev_type;
-} DEV_TBL_T;
-extern const DEV_TBL_T *hx_get_devtbl(void);
-extern int hx_devtbl_count(void);
-extern void hx_device_init(void);
 
 /*
 	stdard input/output
@@ -72,18 +113,24 @@ extern HX_DEV hx_stdin,hx_stdout,hx_stderr;
 #define hxout	(&hx_stdout)
 #define hxerr	(&hx_stderr)
 
-
+/*
+	export calls
+*/
 extern int hx_open(const char *dev_name,const char *param, HX_DEV* dev);
 extern int hx_read(HX_DEV *dev,void *buf,int size);
 extern int hx_write(HX_DEV *dev,const void *buf,int size);
 extern int hx_close(HX_DEV *dev);
-extern int hx_poll(HX_DEV *dev,void *vp,int ip);
+extern int hx_ioctl(HX_DEV *dev,int cmd,...);
 
-#define REG_CHAR 		0
-#define REG_BLOCK		1
-extern int hx_register_device(int type,const DEV_T *dev);
-#define hx_register_char_device(d)	hx_register_device(REG_CHAR,d)
-#define hx_register_block_device(d)	hx_register_device(REG_BLOCK,d)
+extern const DEV_T **hx_get_devtbl(void);
+extern int hx_devtbl_count(void);
+extern void hx_device_init(void);
+extern const void *hx_find_device(int devtype,int devid);
 
+/*
+	BSL layer calls
+*/
+extern int hx_register_device(const DEV_T *dev);
+extern const void *hx_interface_get_member(const INF_T *pinf,int m_label);
 
 #endif

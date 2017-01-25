@@ -3,6 +3,16 @@
 #include <string.h>
 #include <rt_sys.h>
 #include <rt_misc.h>
+#include <stdarg.h>
+
+#pragma anon_unions
+
+
+/* if not retarget stdio,please call below
+extern int xprintf(const char *fmt,...);
+extern int xgetc_noblock(int *c);
+extern int xputc(int ch,int c);
+*/
 
 /*
 #include "D:/HX_UTILS/jlink_udt.h"
@@ -29,10 +39,7 @@ int main(void)
 	The macros _MICROLIB is not work!
 	And :tt stdfile name cannot be echange
 */
-//#ifdef _MICROLIB
-//#pragma import(__use_full_stdio)
-//#endif
-#pragma import(__use_no_semihosting)
+
 
 /*
 surpport debug interface:
@@ -40,16 +47,29 @@ surpport debug interface:
 	JLINK_DMI_TERM
 */
 
-//#ifdef __DEBUG__
-//#define USE_JLINK_DCC
-#define JLINK_DMI_TERM
-//#endif
+#ifdef __DEBUG__
+#define UDT_ENABLE	
+#define USE_RETARGET		/* can use stdlib printf() */
+#endif
 
-#define CONFIG_BUFSIZ		(128)
+#if !defined(UDT_ENABLE) || !defined(USE_RETARGET)
+#define RETARGET_DUMMY		/* use empty retarget. if not, printf() will dead */
+#endif
 
-//#define STDIN_BUFSIZ		CONFIG_BUFSIZ
-#define STDOUT_BUFSIZ		CONFIG_BUFSIZ
-#define STDERR_BUFSIZ		CONFIG_BUFSIZ
+#if (__TARGET_ARCH_ARM == 0)	//refrance keil help
+#define ARCH_CORTEXM
+#else
+#define ARCH_ARM79
+#endif
+
+#if defined(ARCH_CORTEXM)
+	#define JLINK_DMI_TERM
+#elif defined(ARCH_ARM79)
+	#define USE_JLINK_DCC
+#else
+	#define USE_JLINK_DCC
+#endif
+
 
 #ifdef USE_JLINK_DCC
 //#define STDIO_READ		jlink_dcc_read
@@ -69,15 +89,28 @@ surpport debug interface:
 #define STDIO_GETC		jlink_dcc_getc
 #endif
 
+//static int STDIO_READ(int f, unsigned char *buf,unsigned len);
+int STDIO_WRITE(int f, const unsigned char *buf,unsigned len);
+int STDIO_GETC(int *c);
+
+
 ////=====================================================================
+
+#if defined(UDT_ENABLE) && defined(USE_RETARGET)
+//#ifdef _MICROLIB
+//#pragma import(__use_full_stdio)
+//#endif
+#pragma import(__use_no_semihosting)
+
+#define CONFIG_BUFSIZ		(128)
+
+//#define STDIN_BUFSIZ		CONFIG_BUFSIZ
+#define STDOUT_BUFSIZ		CONFIG_BUFSIZ
+#define STDERR_BUFSIZ		CONFIG_BUFSIZ
 
 #define STDIN             (0)
 #define STDOUT            (1)
 #define STDERR            (2)
-
-//static int STDIO_READ(int f, unsigned char *buf,unsigned len);
-static int STDIO_WRITE(int f, const unsigned char *buf,unsigned len);
-static int STDIO_GETC(int *c);
 
 const char __stdin_name[] =  ":stdin";
 const char __stdout_name[] =  ":stdout";
@@ -87,8 +120,6 @@ const char __stderr_name[] =  ":stderr";
 //static char stdin_buff[STDIN_BUFSIZ];
 static char stdout_buff[STDOUT_BUFSIZ];
 static char stderr_buff[STDERR_BUFSIZ];
-
-FILE* __UDT_BLUE;
 
 FILEHANDLE _sys_open(const char *name, int openmode)
 {
@@ -102,10 +133,9 @@ FILEHANDLE _sys_open(const char *name, int openmode)
 		return STDOUT;
 	}else if(strcmp(name,__stderr_name)==0){
 		setvbuf(stderr,stderr_buff,_IOFBF,STDERR_BUFSIZ);
-		__UDT_BLUE = fopen(":stdin","a+");
 		return STDERR;
 	}else{
-		return -1;
+		return (FILEHANDLE)name[0];
 	}
 }
 int _sys_close(FILEHANDLE fh)
@@ -118,7 +148,7 @@ int _sys_write(FILEHANDLE fh, const unsigned char *buf,
 {
 	int res;
 	(void)mode;
-	if(fh<0||fh>2)
+	if(fh<0)
 		return -1;
 	res = STDIO_WRITE((int)fh,buf,len);
 	if(res == len)
@@ -182,6 +212,85 @@ int fgetc(FILE *f) {
 	return fgetc_noblock(f);
 }
 
+#else
+#ifdef RETARGET_DUMMY
+const char __stdin_name[] =  ":tt";
+const char __stdout_name[] =  ":tt";
+const char __stderr_name[] =  ":tt";
+
+FILEHANDLE _sys_open(const char *name, int openmode)
+{
+  return 1; /* everything goes to the same output */
+}
+int _sys_close(FILEHANDLE fh)
+{
+  return 0;
+}
+int _sys_write(FILEHANDLE fh, const unsigned char *buf,
+               unsigned len, int mode)
+{
+	return 0;
+}
+int _sys_read(FILEHANDLE fh, unsigned char *buf,
+              unsigned len, int mode)
+{
+  return -1; /* not supported */
+}
+void _ttywrch(int ch)
+{
+  (void)ch;
+}
+int _sys_istty(FILEHANDLE fh)
+{
+  return 0; /* buffered output */
+}
+int _sys_seek(FILEHANDLE fh, long pos)
+{
+  return -1; /* not supported */
+}
+long _sys_flen(FILEHANDLE fh)
+{
+  return -1; /* not supported */
+}
+void _sys_exit(int rc) 
+{
+	(void)rc;
+}
+#endif //RETARGET_DUMMY
+#endif
+//=====================================================
+#if defined(UDT_ENABLE) && !defined(USE_RETARGET)
+int xprintf(const char *fmt,...)
+{
+	int res,len;
+	char buf[1024];
+	va_list va;
+	va_start(va,fmt);
+	len = vsprintf(buf,fmt,va);
+	res = STDIO_WRITE(1,(void*)buf,len);
+	va_end(va);
+	return res;
+}
+int xputc(int ch,int c)
+{
+	unsigned char cc = c;
+	return STDIO_WRITE(ch,&cc,1);
+}
+int xgetc_noblock(int *pc)
+{
+	int res;
+	int c;
+	res = STDIO_GETC(&c);
+	if(res){
+		*pc = 0xffu & c;
+		return 0;
+	}
+    return -1;
+}
+
+#endif
+
+//=================================================================
 
 #ifndef uint
 #define byte	unsigned char
@@ -438,15 +547,17 @@ static uchar jlink_dcc_send_frame(uchar color, const uchar *buf, uchar len)
 	sof cmd1  cmd2   dlen   [data...] ...    eof sum1 rfs1 rfs2
 	FE  C1/C2 color  <256                    F0  
 	*/
-	if(buf==NULL || len>128)
-		return 0;
+	int i;
 	uint dlen = len & 0x0FFu;
 	uint StartFrame = 0xFEC10000u | (color<<8) | dlen;
 	uint sum = make_sum(dlen,buf,len);
 	uint EndFrame = 0xF0000000u | (sum<<16);
+	uint l;
+	if(buf==NULL || len>128)
+		return 0;
 	dcc_write_u32(StartFrame);
-	uint l = len>>2<<2;
-	for(int i=0;i<l;i+=4){
+	l = len>>2<<2;
+	for(i=0;i<l;i+=4){
 		uint d = array2uint(&buf[i],4);
 		dcc_write_u32(d);
 	}
@@ -467,12 +578,15 @@ static int jlink_dcc_putc(int ch, int d) {
     _WriteDCC(packet);
 	return d;
 }
-static int jlink_dcc_write(int f, const unsigned char *buf, unsigned len)
+int jlink_dcc_write(int f, const unsigned char *buf, unsigned len)
 {
+	uint l;
+	uint i;
 	uint ch = 'r';
 	if(f==0) ch='g';	//green
-	if(f==1) ch='w';	//white
-	if(f==2) ch='r';	//red
+	else if(f==1) ch='w';	//white
+	else if(f==2) ch='r';	//red
+	else ch = f;
 	if(len==1){
 		int c = *buf;
 		if(c == '\n'){
@@ -482,8 +596,8 @@ static int jlink_dcc_write(int f, const unsigned char *buf, unsigned len)
 			return jlink_dcc_putc(ch,c);
 		}
 	}
-	uint l = len>>7<<7;
-	for(uint i=0;i<l;i+=128){
+	l = len>>7<<7;
+	for(i=0;i<l;i+=128){
 		jlink_dcc_send_frame(ch,&buf[i],128);
 	}
 	if(len>l){
@@ -491,7 +605,7 @@ static int jlink_dcc_write(int f, const unsigned char *buf, unsigned len)
 	}
 	return len;
 }
-static int jlink_dcc_getc(int *d)
+int jlink_dcc_getc(int *d)
 {
   uint Data;
 
@@ -519,48 +633,78 @@ typedef __packed struct __TRAD
 	unsigned int data;
 } TRAD_T;
 
-static TRAD_T trad_tx __attribute__((at(TRAD_CTRLBLK_ADDR))) = {0};
-static TRAD_T trad_rx __attribute__((at(TRAD_CTRLBLK_ADDR+sizeof(TRAD_T)))) = {0};
+typedef __packed struct __TRAD_CB
+{
+	TRAD_T tx;
+	TRAD_T rx;
+	uchar txbuf[128];
+	uchar rxbuf[128];
+} TRAD_CB;
 
+static TRAD_CB trad_cb __attribute__((at(TRAD_CTRLBLK_ADDR))) = {0};
 
 static int jlink_dmit_putc(int ch,int c)
 {
-	int res;
+	uint res;
+		
+	trad_cb.tx.data = c | 0x54000000|(ch<<8);
+	trad_cb.tx.flag = 1;
 	do{
-		res = trad_tx.flag;
-	}while(res);	
-	trad_tx.data = c | 0x54000000|(ch<<8);
-	trad_tx.flag = 1;
+		res = trad_cb.tx.flag;
+	}while(res);
 	return 0;
 }
-static int jlink_dmit_getc(int *c)
+
+static int jlink_dmit_send(int ch,const uchar *s,int len)
+{
+	uint res;	
+	memcpy(trad_cb.txbuf,s,len);
+	trad_cb.tx.data = len | 0x5F000000|(ch<<8);
+	trad_cb.tx.flag = 1;
+	do{
+		res = trad_cb.tx.flag;
+	}while(res);
+	return 0;
+}
+
+int jlink_dmit_getc(int *c)
 {
 	int res;
-	res = trad_rx.flag;
+	res = trad_cb.rx.flag;
 	if(res){
-		res = trad_rx.data;
+		res = trad_cb.rx.data;
 		if((res&0xFF000000u) == 0x55000000u ){
-			trad_rx.data = 0x00000000;
+			trad_cb.rx.data = 0x00000000;
 			*c = res & 0x0FFu;
 			return 1;
 		}
-		trad_rx.flag = 0x00000000;
+		trad_cb.rx.flag = 0x00000000;
 	}
 	return 0;
 }
-static int jlink_dmit_write(int f, const unsigned char *buf, unsigned len)
+int jlink_dmit_write(int f, const unsigned char *buf, unsigned len)
 {
-	int i;
 	uint ch = 'r';
 	if(f==0) ch='g';	//green
-	if(f==1) ch='w';	//white
-	if(f==2) ch='r';	//red
-	for(i=0;i<len;i++)
-		jlink_dmit_putc(ch,buf[i]);
+	else if(f==1) ch='w';	//white
+	else if(f==2) ch='r';	//red
+	else ch=f;
+	if(len==1){
+		jlink_dmit_putc(ch,buf[0]);
+	}else{
+		int i=0;
+		for(i=0;i<len;i+=128){
+			int l = len-i;
+			if(l>=128)
+				l = 128;
+			jlink_dmit_send(ch,buf,len);
+		}
+	}
 	return len;
 }
 
 #endif
+
 
 
 

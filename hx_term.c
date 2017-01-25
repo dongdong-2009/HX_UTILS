@@ -297,21 +297,13 @@ int hxt_putc(int c)
 }
 int hxt_put(const char *s)
 {
-	const char *p = s;
-	int c;
-	while((c=*p++)!=0){
-		hxt_put_char(c);
-	}
+	hxl_put(&hx_stdout,s);
 	return 0;
 }
 
 int hxt_fput(HX_DEV *d, const char *s)
 {
-	const char *p = s;
-	int c;
-	while((c=*p++)!=0){
-		hxt_fput_char(d,c);
-	}
+	hxl_put(d,s);
 	return 0;
 }
 

@@ -151,7 +151,7 @@ static const PARAM_DRV_T param_drv = {
 };
 
 const PARAM_DEV_T brd_params = {
-	.dev = {"param",0,&param_drv},
+	.dev = {"param",0,(const void*)&param_drv},
 	.tbl = g_param_tbl,
 	.count = sizeof(g_param_tbl)/sizeof(g_param_tbl[0]),
 };
@@ -213,13 +213,13 @@ static const UART_DRV_T uart_drv = {
 	.close = uart_close,
 };
 static UART_PRIVATE_T uart0_prv;
-char uart0_txbuf[128],uart0_rxbuf[128];
+char uart0_txbuf[1024],uart0_rxbuf[1024];
 //char uart1_txbuf[128],uart1_rxbuf[128];
 //char uart2_txbuf[128],uart2_rxbuf[128];
 static UART_PRIVATE_T uart3_prv;
 char uart3_txbuf[128],uart3_rxbuf[128];
 static const UART_DEV_T cdev_uart0 = {
-	.dev = {"u0_com",0,&uart_drv},
+	.dev = {"u0_com",0,(const void*)&uart_drv},
 	.txbuf = uart0_txbuf,
 	.rxbuf = uart0_rxbuf,
 	.txbuf_size = 1024,
@@ -228,7 +228,7 @@ static const UART_DEV_T cdev_uart0 = {
 	.prv = &uart0_prv,
 };
 static const UART_DEV_T cdev_at_uart = {
-	.dev = {"at_uart",0,&uart_drv},
+	.dev = {"at_uart",0,(const void*)&uart_drv},
 	.txbuf = uart0_txbuf,
 	.rxbuf = uart0_rxbuf,
 	.txbuf_size = 1024,
@@ -237,7 +237,7 @@ static const UART_DEV_T cdev_at_uart = {
 	.prv = &uart0_prv,
 };
 static const UART_DEV_T cdev_uart3 = {
-	.dev = {"u3_485",3,&uart_drv},
+	.dev = {"u3_485",3,(const void*)&uart_drv},
 	.txbuf = uart3_txbuf,
 	.rxbuf = uart3_rxbuf,
 	.txbuf_size = 128,
@@ -445,29 +445,29 @@ int brd_init(void)
 	cpu_init_tickcount_1m_by_pclk(__get_fpclk());
 	for(int i=0;i<sizeof(cdev_gpio_tbl)/sizeof(cdev_gpio_tbl[0]);
 		i++){
-		hx_register_char_device(&cdev_gpio_tbl[i]);
+		hx_register_device(&cdev_gpio_tbl[i]);
 	}
 	hx_register_uart_device(&cdev_uart0);
 	hx_register_uart_device(&cdev_uart3);
-	hx_register_char_device(&cdev_sbio);
+	hx_register_device(&cdev_sbio);
 	
 	hx_register_uart_device(&cdev_at_uart);
 	
 	//sim800c
-	hx_register_char_device(&cdev_at_io_pwr);
-	hx_register_char_device(&cdev_at_io_rst);
+	hx_register_device(&cdev_at_io_pwr);
+	hx_register_device(&cdev_at_io_rst);
 	
 	//sim7100c
-	hx_register_char_device((DEV_T*)&g_cdev_me3630_c1a);
-	hx_register_char_device((DEV_T*)&g_cdev_me3630_c1b);
+	hx_register_device((DEV_T*)&g_cdev_me3630_c1a);
+	hx_register_device((DEV_T*)&g_cdev_me3630_c1b);
 	
 	
-	hx_register_char_device((DEV_T*)&g_cdev_sim800c);
-	hx_register_char_device((DEV_T*)&g_cdev_sim7600c);
+	hx_register_device((DEV_T*)&g_cdev_sim800c);
+	hx_register_device((DEV_T*)&g_cdev_sim7600c);
 	
 	
 	for(int i=0;i<sizeof(cdev_tbl)/sizeof(cdev_tbl[0]);i++){
-		hx_register_char_device(&cdev_tbl[i]);
+		hx_register_device(&cdev_tbl[i]);
 	}
 	sub_brd_init();
 	return 0;

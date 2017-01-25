@@ -33,16 +33,16 @@ static int _dev_open_with_param(char *dev, char *pa, HX_DEV *d)
 	}
 	return res;
 }
-static int _dev_open_no_param(char *dev, HX_DEV *d)
-{
-	int res;
-    res = hx_open(dev,"",d);
-	if(res){
-		hxt_fprintf(hxerr,"open error,dev:%s,res:%d\n",
-			dev,res);
-	}
-	return res;
-}
+//static int _dev_open_no_param(char *dev, HX_DEV *d)
+//{
+//	int res;
+//    res = hx_open(dev,"",d);
+//	if(res){
+//		hxt_fprintf(hxerr,"open error,dev:%s,res:%d\n",
+//			dev,res);
+//	}
+//	return res;
+//}
 
 static void next_value(char **s, char *array)
 {
@@ -120,7 +120,7 @@ HXT_DEF_PROC(rc)
 	int c;
     int res;
     HX_DEV d;
-	char *e;
+//	char *e;
 	unsigned timeout = 0;
     if(argc<2)
         goto bad_arg;
@@ -165,7 +165,7 @@ HXT_DEF_PROC(wc)
     int l;
 	HX_DEV d;
     char *dat;
-	char *e;
+//	char *e;
     if(argc<2)
         goto bad_arg;
     dat = argv[2];
@@ -372,12 +372,18 @@ bad_arg:
 HXT_DEF_PROC(list)
 {
     int i;
-    const DEV_TBL_T *devtbl = hx_get_devtbl();
+    const DEV_T **devtbl = hx_get_devtbl();
     int devtbl_count = hx_devtbl_count();
     for(i=0; i<devtbl_count; i++) {
-        const DEV_T *device = devtbl[i].dev;
-        int type = devtbl[i].dev_type;
-        hxt_printf("%c\t%s\r\n",(type==REG_CHAR)?'c':'b',device->name);
+        const DEV_T *device = devtbl[i];
+        int type = device->devtype;
+		char c;
+		if(type>DT_INTERFACE) c = 'f';
+		else if(type>DT_BLOCK) c = 'b';
+		else if(type>DT_CHAR) c = 'c';
+		else c = '?';
+        hxt_printf("%c\t%u,%u\t%s\r\n",
+			c,type,device->devid,device->name);
     }
     return 0;
 }

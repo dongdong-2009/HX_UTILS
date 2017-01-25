@@ -22,7 +22,7 @@ int hxd_iopin_open(HX_DEV *dev,const char *s)
 	const DEV_T *pdev = dev->pdev;
 	const IOPIN_DRV_T *drv = (const IOPIN_DRV_T *)pdev->driver;
 	uint id = pdev->devid;
-	uint board =  (id>>16) & 0xFFu;
+	uint board =  (id>>12) & 0xFFu;
 	uint port = (id>>8) & 0xFFu;
 	uint pin = id & 0xFFu;
 	if(board>=drv->tbl_count)
@@ -43,7 +43,7 @@ int hxd_iopin_read(HX_DEV *dev,void *buf,int size)
 	const DEV_T *pdev = dev->pdev;
 	const IOPIN_DRV_T *drv = (const IOPIN_DRV_T *)pdev->driver;
 	uint id = pdev->devid;
-	uint board =  (id>>16) & 0xFFu;
+	uint board =  (id>>12) & 0xFFu;
 	uint port = (id>>8) & 0xFFu;
 	uint pin = id & 0xFFu;
 	uint val;
@@ -64,7 +64,7 @@ int hxd_iopin_write(HX_DEV *dev,const void *buf, int size)
 	const DEV_T *pdev = dev->pdev;
 	const IOPIN_DRV_T *drv = (const IOPIN_DRV_T *)pdev->driver;
 	uint id = pdev->devid;
-	uint board =  (id>>16) & 0xFFu;
+	uint board =  (id>>12) & 0xFFu;
 	uint port = (id>>8) & 0xFFu;
 	uint pin = id & 0xFFu;
 	char *p = (char*)buf;

@@ -51,7 +51,7 @@ static const PARAM_DRV_T param_drv = {
 };
 
 const PARAM_DEV_T net_param_dev = {
-	.dev = {"net_param",0,&param_drv},
+	.dev = {"net_param",0,(void*)&param_drv},
 	.tbl = g_param_tbl,
 	.count = sizeof(g_param_tbl)/sizeof(g_param_tbl[0]),
 };
@@ -86,8 +86,10 @@ static int atc_open(HX_DEV *dev,const char *param)
 		return nic->init(nic);
 	return 0;
 }
-static int _atc_poll(HX_DEV *dev,void *vp,int ip)
+static int _atc_ioctl(HX_DEV *dev,int cmd,va_list va)
 {
+	if(cmd!=IOCTL_AT_POLL)
+		return -1;
 	const ATC_DEV_T *atcdev = (const ATC_DEV_T *)dev->pdev;
 	const struct HX_NIC_T *nic = atcdev->nic;
 	if(nic->at_tbl_count == dev->offset)
@@ -143,7 +145,7 @@ const DEV_DRV_T hx_atc_drv = {
 	.read = atc_read,
 	.write = atc_write,
 	.close = atc_close,
-	.poll = _atc_poll,
+	.ioctl = _atc_ioctl,
 };
 
 

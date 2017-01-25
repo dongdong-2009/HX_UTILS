@@ -11,6 +11,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
+#include "udt.h"
 
 
 BOOL(*JLINKARM_IsHalted)(void);
@@ -33,8 +34,8 @@ UINT32(*JLINKARM_ExecCommand)(const char* cmd,UINT32 a,UINT32 b);
 void(*JLINKARM_WriteU8)(UINT32 addr, BYTE dat);
 void(*JLINKARM_WriteU16)(UINT32 addr, UINT16 dat);
 void(*JLINKARM_WriteU32)(UINT32 addr, UINT32 dat);
-void(*JLINKARM_ReadMemU8)(UINT32 addr, UINT32 leng, BYTE *buf, BYTE *status);
-void(*JLINKARM_ReadMemU16)(UINT32 addr, UINT32 leng, UINT16 *buf, BYTE *status);
+UINT32(*JLINKARM_ReadMemU8)(UINT32 addr, UINT32 leng, BYTE *buf, BYTE *status);
+UINT32(*JLINKARM_ReadMemU16)(UINT32 addr, UINT32 leng, UINT16 *buf, BYTE *status);
 UINT32 (*JLINKARM_ReadMemU32)(UINT32 addr, UINT32 leng, UINT32 *buf, BYTE *status);
 void(*JLINKARM_ReadMemHW)(UINT32 addr, UINT32 leng, BYTE *buf);
 UINT32 (__stdcall *JLINK_TIF_Select)(UINT32 tif);
@@ -45,7 +46,53 @@ void(*JLINK_ReadMemU8)(UINT32 addr, UINT32 leng, BYTE *buf, BYTE *status);
 UINT32 (*JLINK_GetMemZones)(UINT32 a, UINT32 b);
 void(*JLINKARM_Go)(void);
 
-
+UINT32 JLINKARM_WriteMenU8(UINT32 addr, UINT32 leng, BYTE *buf)
+{
+	if (leng == 1)
+	{
+		JLINKARM_WriteU8(addr, buf[0]);
+	}
+	else if (leng == 2)
+	{
+		UINT16 dat = buf[0];
+		dat <<= 8;
+		dat |= buf[1];
+		JLINKARM_WriteU16(addr, dat);
+	}
+	else if (leng == 3)
+	{
+		JLINKARM_WriteU8(addr, buf[0]);
+		UINT16 dat = buf[1];
+		dat <<= 8;
+		dat |= buf[2];
+		JLINKARM_WriteU16(addr, dat);
+	}
+	else
+	{
+		for (int i = 0; i < leng; i+=4)
+		{
+			int l = leng - i;
+			if (l >= 4) 
+			{
+				UINT32 dat = buf[i+0];
+				dat <<= 8;
+				dat |= buf[i+1];
+				dat <<= 8;
+				dat |= buf[i+2];
+				dat <<= 8;
+				dat |= buf[i+3];
+				JLINKARM_WriteU32(addr, dat);
+			}
+			else
+			{
+				for (int j = i; j < l; j++) {
+					JLINKARM_WriteU8(addr, buf[j]);
+				}
+			}
+		}
+	}
+	return leng;
+}
 
 int load_jlinkarm_dll(void)
 {
@@ -72,8 +119,8 @@ int load_jlinkarm_dll(void)
 	JLINKARM_WriteU8 = (void(*)(UINT32, BYTE))GetProcAddress(lib, "JLINKARM_WriteU8");
 	JLINKARM_WriteU16 = (void(*)(UINT32, UINT16))GetProcAddress(lib, "JLINKARM_WriteU16");
 	JLINKARM_WriteU32 = (void(*)(UINT32, UINT32))GetProcAddress(lib, "JLINKARM_WriteU32");
-	JLINKARM_ReadMemU8 = (void(*)(UINT32, UINT32, BYTE *, BYTE *))GetProcAddress(lib, "JLINKARM_ReadMemU8");
-	JLINKARM_ReadMemU16 = (void(*)(UINT32, UINT32, UINT16 *, BYTE *))GetProcAddress(lib, "JLINKARM_ReadMemU16");
+	JLINKARM_ReadMemU8 = (UINT32(*)(UINT32, UINT32, BYTE *, BYTE *))GetProcAddress(lib, "JLINKARM_ReadMemU8");
+	JLINKARM_ReadMemU16 = (UINT32(*)(UINT32, UINT32, UINT16 *, BYTE *))GetProcAddress(lib, "JLINKARM_ReadMemU16");
 	JLINKARM_ReadMemU32 = (UINT32(*)(UINT32, UINT32, UINT32 *, BYTE *))GetProcAddress(lib, "JLINKARM_ReadMemU32");
 
 	JLINKARM_ReadMem = (void(*)(UINT32, UINT32, BYTE *))GetProcAddress(lib, "JLINKARM_ReadMem");
@@ -148,7 +195,9 @@ int change_ch(int ch)
 	last = ch;
 	return res;
 }
+
 UINT32 trad_addr = 0;
+TRAD_CB trad_cb;
 
 void dcc_send(int c)
 {
@@ -167,13 +216,15 @@ void dcc_send(int c)
 
 void trad_send(int c)
 {
-	UINT32 data = 0x55000000u | c;
+	trad_cb.rx.data = 0x55000000u | c;
 	UINT32 res;
-	JLINKARM_WriteU32(trad_addr + 12, data);	//先清数据
-	JLINKARM_WriteU32(trad_addr + 8, 1);		//后清除标志
 	do {
-		JLINKARM_ReadMemU32(trad_addr+8, 1, &res, 0);
+		JLINKARM_ReadMemU32(TRAD_OFFSET(rx.flag), 1, &res, 0);
 	} while (res);
+	JLINKARM_WriteU32(TRAD_OFFSET(rx.data), trad_cb.rx.data);	//先写数据
+	//JLINKARM_WriteMenU8(TRAD_OFFSET(rx.data), sizeof(trad_cb.rx.data), (BYTE*)&trad_cb.rx.data);	//先写数据
+	JLINKARM_WriteU32(TRAD_OFFSET(rx.flag), 1);			//后职位标志
+	
 }
 
 FILE* flog;
@@ -195,7 +246,7 @@ void log_putchar(int c)
 	fflush(flog);
 }
 
-//volatile BOOL in_api = 0;
+
 DWORD WINAPI ThreadFun(LPVOID pM)
 {
 	UINT32 res;
@@ -254,32 +305,38 @@ DWORD WINAPI ThreadFun(LPVOID pM)
 	}
 }
 
-int jlink_read_mem(UINT32 *c)
+BOOL run_flag = 1;
+BOOL WINAPI ConsoleHandler(DWORD msgType)
 {
-	UINT32 buff[2] = { 0 };
-	//BYTE status;
-	//JLINKARM_ReadMemHW(trad_addr, 8, (BYTE*)buff);
-	BYTE state = 0;
-	INT32 res = JLINKARM_ReadMemU32(trad_addr, 2, buff, 0);// &state);
-	if (res<0) {
-		return res;// printf("%d\r\n", res);
+	if (msgType == CTRL_C_EVENT)
+	{
+		//printf("Ctrl-C!\n");
+		//run_flag = 0;
+		return TRUE;
 	}
-	if (res == 2) {
-		if (buff[0])
-		{
-			JLINKARM_WriteU32(trad_addr + 4, 0);		//先清数据
-			JLINKARM_WriteU32(trad_addr, 0);		//后清除标志
-			*c = buff[1];
-			return 1;
-		}
+	else if (msgType == CTRL_CLOSE_EVENT)
+	{
+		printf("Close console window!\n");
+		run_flag = 0;
+		/* Note: The system gives you very limited time to exit in this condition */
+		return TRUE;
 	}
-	return 0;
+
+	/*
+	Other messages:
+	CTRL_BREAK_EVENT         Ctrl-Break pressed
+	CTRL_LOGOFF_EVENT        User log off
+	CTRL_SHUTDOWN_EVENT      System shutdown
+	*/
+
+	return FALSE;
 }
 int main(int argc, char *argv[])
 {
 	trad_addr = 0x10001000;
 	signal(SIGINT, 0);
-	printf("jlink_trad_view_V0.1 by houxd ,build %s %s\r\n",__DATE__,__TIME__);
+	SetConsoleCtrlHandler(ConsoleHandler, TRUE);
+	printf("Jlink DMI Terminal V0.1 by houxd ,build %s %s\r\n",__DATE__,__TIME__);
 	int res;
 	res = load_jlinkarm_dll();
 	if (res) {
@@ -346,7 +403,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	printf("TRAD Control Block Address: %#X\r\n", trad_addr);
+	printf("Communication Control Block Address: %#X\r\n", trad_addr);
 	printf("Open JLink ... ");
 	reinit:
 	JLINKARM_Open();
@@ -368,49 +425,18 @@ int main(int argc, char *argv[])
 #define JLINKARM_TIF_FINE	3
 #define JLINKARM_TIF_2wire_JTAG_PIC32	4
 		
-		//try {
-			//if(strstr(interf,"JTAG"))
-			//	JLINK_TIF_Select(JLINKARM_TIF_JTAG);
-			//else if(strstr(interf,"SWD"))
-				JLINK_TIF_Select(JLINKARM_TIF_SWD);
-				int conf = JLINK_Connect();
-			//else
-			//	JLINK_TIF_Select(JLINKARM_TIF_JTAG);
-	//	}
-		//catch (...) {}
-		JLINKARM_SetSpeed(speed);
-		//JLINK_Connect();
 
+		JLINK_TIF_Select(JLINKARM_TIF_SWD);
+		int conf = JLINK_Connect();
+		JLINKARM_SetSpeed(speed);
 
 		printf("JLink Info:\r\n");
 		printf("DEVICE = %s\r\n", device);
-		//getc(stdin);
-		//exit(0);
 		printf("SN = %08u\r\n", JLINKARM_GetSN());
 		printf("ID = %08X\r\n", JLINKARM_GetId());
 		printf("VER = %u\r\n", JLINKARM_GetDLLVersion());
 		printf("Speed = %u\r\n", JLINKARM_GetSpeed());
 		printf("=============================================================\r\n");
-
-		//JLINK_GetMemZones(0, 0);
-
-		//UINT32 buff[8];
-		//BYTE status;
-		//while (1) {
-		//	JLINKARM_ReadMemU32(0x10001000, 2, buff, &status);
-		//	if (buff[0])
-		//	{
-		//		putchar(buff[1]);
-		//		buff[0] = 0;
-		//		JLINKARM_WriteU32(0x10001000, 0);
-		//	}
-		//	
-		//}
-		//printf("%08x %08x", buff[0], buff[1]);
-		//_getch();
-
-		//return 0;
-
 		HANDLE handle = CreateThread(NULL, 0, ThreadFun, NULL, 0, NULL);
 		UINT32 buf[256];
 		fprintf(flog, "------------------------------------------------------------\r\n");
@@ -427,36 +453,25 @@ int main(int argc, char *argv[])
 			JLINKARM_ExecCommand(buff, 0, 0);
 			JLINKARM_SetSpeed(speed);
 		}
+		JLINK_TIF_Select(JLINKARM_TIF_SWD);
+		JLINK_Connect();
 		if(JLINKARM_IsHalted())
 			JLINKARM_Go();
 
-		while (1) {
-			//while (in_api);
-			//in_api = 1;
-			res = jlink_read_mem(buf);//JLINKARM_ReadDCC(buf, 256, 2);
-			if (res == -1) {
-				if (first)
-				{
-					continue;
-				}
-				else
-				{
-					//JLINKARM_Halt();
-					//JLINKARM_Go();
-					JLINKARM_Close();
-					goto L001;
-				}
-			}
-			else 
+
+
+		while (run_flag) 
+		{
+			res = JLINKARM_ReadMemU8(TRAD_OFFSET(tx), sizeof(trad_cb.tx), (BYTE*)&trad_cb.tx, 0);
+			if (res == -1)
 			{
-				first = 0;
+				//JLINKARM_Close();
+				goto L001;
 			}
-			//in_api = 0;
-			if (res) {
-				for (int i = 0; i < res; i++) {
-					UINT32 data = buf[i];
-					if ((data>>24) != 0x54)
-						continue;
+			if (res==sizeof(trad_cb.tx) && trad_cb.tx.flag) {
+				UINT32 data = trad_cb.tx.data;
+				if ((data >> 24) == 0x54)
+				{
 					int ch = (data >> 8) & 0xFFu;
 					int chbak = change_ch(ch);
 					int c = data & 0xFFu;
@@ -466,8 +481,33 @@ int main(int argc, char *argv[])
 					}
 					change_ch(chbak);
 				}
+				else if ((data >> 24) == 0x5F)
+				{
+					int ch = (data >> 8) & 0xFFu;
+					int chbak = change_ch(ch);
+					int len = data & 0xFFu;
+					if (ch > 0 && ch <= 128) {
+						BYTE dat[128];
+						res = JLINKARM_ReadMemU8(TRAD_OFFSET(txbuf), len, dat, 0);
+						if (res == -1) {
+							//JLINKARM_Close();
+							goto L001;
+						}
+						for (int i = 0; i < len; i++)
+						{
+							putchar(dat[i]);
+							log_putchar(dat[i]);
+						}
+					}
+					change_ch(chbak);
+				}
+				//清除接收标志
+				trad_cb.tx.flag = 0;
+				//JLINKARM_WriteMenU8(TRAD_OFFSET(tx.flag), sizeof(trad_cb.tx.flag), (BYTE*)&trad_cb.tx.flag);
+				JLINKARM_WriteU32(TRAD_OFFSET(tx.flag), 0);		//后清除标志
+
 			}
-			//Sleep(10);
+			//Sleep(1);
 		}
 
 		WaitForSingleObject(handle, INFINITE);

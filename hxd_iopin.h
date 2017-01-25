@@ -15,7 +15,7 @@
 //#define PIN_ATTR_INPUTONLY	(4u<<24)
 //#define PIN_ATTR_ANALOG		(8u<<24)
 
-#define _IOPIN_ID(board,port,pin)		((0<<24)|(board<<16)|(port<<8)|(pin<<0))
+#define _IOPIN_ID(board,port,pin)		((0<<16)|(board<<12)|(port<<8)|(pin<<0))
 #define uint	unsigned int
 
 struct IODESC_T {

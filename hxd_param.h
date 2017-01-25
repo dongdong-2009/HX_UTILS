@@ -67,6 +67,6 @@ extern int hxd_param_close(HX_DEV *dev);
 }
 
 #define hx_register_params(param_dev) 	\
-	hx_register_char_device((DEV_T*)param_dev);
+	hx_register_device((DEV_T*)param_dev);
 
 #endif /* HX_UTILS_HXD_PARAM_H_ */

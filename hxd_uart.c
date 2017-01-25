@@ -48,10 +48,12 @@ static int uart_getc_noblock(const UART_DEV_T *uart,int *c)
 	return res;
 }
 /* return char count that can be read */
-int hxd_uart_poll(HX_DEV *dev,void *vp,int ip)
+int hxd_uart_ioctl(HX_DEV *dev,int cmd,va_list va)
 {
-	const char *s = vp;
-	int sl = strlen(s);
+	if(cmd != IOCTL_GETS_NOBLOCK)
+		return -1;
+	char *buff = va_arg(va,char*);
+	int bufsize = va_arg(va,int);
 	const UART_DEV_T *uart = (const UART_DEV_T *)(dev->pdev);
 	UART_DRV_T *drv = (UART_DRV_T*)(uart->dev.driver);
 	UART_PRIVATE_T *prv = uart->prv;
@@ -63,7 +65,8 @@ int hxd_uart_poll(HX_DEV *dev,void *vp,int ip)
 	if(rxread>=rxpos)
 		return -1;
 	for(int i=rxread;i<rxpos;i++){
-		if(memcmp(&rxbuf[i],s,sl)==0){
+		if(rxbuf[i]=='\n' || rxbuf[i]=='\r'){
+			memcpy(buff,&rxbuf[rxread],i-rxread);
 			return i-rxread;
 		}
 	}
@@ -166,7 +169,7 @@ void hxd_uart_tx_byte(const UART_DEV_T *uart)
 int hx_register_uart_device(const UART_DEV_T *dev)
 {
 
-	return hx_register_char_device((DEV_T*)dev);
+	return hx_register_device((DEV_T*)dev);
 
 }
 

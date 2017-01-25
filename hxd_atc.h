@@ -12,6 +12,9 @@
 #include "hx_device.h"
 #include "stdint.h"
 
+#define IOCTL_AT_POLL					(1)
+//ioctl(HX_DEV *dev,int cmd)
+
 /*
 	usefor call back function, indicate a event.
 */
