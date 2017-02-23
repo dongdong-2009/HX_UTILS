@@ -52,13 +52,14 @@ extern int hx_debug_enable(int en);
 
 #else
 
-#define  HX_DBG_ENABLE(...)	
-#define  HX_DBG_PRINT(...)    
-#define  HX_DBG_PRINTLN(...)	
-#define hx_dbg(...)
-#define hx_dbgi(...)
-#define hx_dbge(...)
-#define hx_debug_enable(...)   (0)
+extern int __dummy_op(int p,...);
+#define  HX_DBG_ENABLE(...)		__dummy_op(0,__VA_ARGS__)
+#define  HX_DBG_PRINT(...)    __dummy_op(0,__VA_ARGS__)
+#define  HX_DBG_PRINTLN(...)	__dummy_op(0,__VA_ARGS__)
+#define hx_dbg(...)						__dummy_op(__VA_ARGS__)
+#define hx_dbgi(...)					__dummy_op(__VA_ARGS__)
+#define hx_dbge(...)					__dummy_op(__VA_ARGS__)
+#define hx_debug_enable(...)  __dummy_op(__VA_ARGS__)
 	
 #endif
 

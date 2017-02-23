@@ -183,19 +183,20 @@ HXT_DEF_PROC(wc)
 		buff[0] = dat[0]-'0';
 		l=1;
 	}
+	char rxbuf[512];
+	hx_ioctl(&d,IOCTL_CFG_BUFFER,rxbuf,512);
     res = hx_write(&d,buff,l);
-    if(res!=l) {
-        hxt_fprintf(hxerr,"write error, res:%d\r\n",res);
-        return -1;
-    }
+	hxt_fprintf(hxout,"write return %d\r\n",res);
     res = hx_read(&d,buff,512);
     if(res>0) {
-        hxt_fprintf(hxin,"ret %u Bytes ",res);
+        hxt_fprintf(hxout,"ret %u Bytes ",res);
         for(int i=0; i<res; i++) {
             hxt_fprintf(hxin,"%02hhX",buff[i]);
         }
         hxt_puts("\n");
-    }
+    }else{
+		hxt_fprintf(hxout,"read return %d\r\n",res);
+	}
     return 0;
 bad_arg:
     hxt_puts("Usage:");
@@ -371,20 +372,21 @@ bad_arg:
 }
 HXT_DEF_PROC(list)
 {
-    int i;
-    const DEV_T **devtbl = hx_get_devtbl();
-    int devtbl_count = hx_devtbl_count();
-    for(i=0; i<devtbl_count; i++) {
-        const DEV_T *device = devtbl[i];
-        int type = device->devtype;
-		char c;
-		if(type>DT_INTERFACE) c = 'f';
-		else if(type>DT_BLOCK) c = 'b';
-		else if(type>DT_CHAR) c = 'c';
-		else c = '?';
-        hxt_printf("%c\t%u,%u\t%s\r\n",
-			c,type,device->devid,device->name);
-    }
+	const DEV_T **p = hx_dev_next(NULL);
+	do{
+		if(p && *p){
+			const DEV_T *device = *p;
+			int type = device->devtype;
+			char c;
+			if(type>DT_INTERFACE) c = 'f';
+			else if(type>DT_BLOCK) c = 'b';
+			else if(type>DT_CHAR) c = 'c';
+			else c = '?';
+			hxt_printf("%c\t%u,%u\t%s\r\n",
+				c,type,device->devid,device->name);
+		}
+		p = hx_dev_next(p);
+	}while(p);
     return 0;
 }
 

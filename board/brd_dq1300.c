@@ -242,8 +242,11 @@ const INF_T psam_inf = {
 	.members = psam_inf0_mbs,
 	.count = 4,
 };
+HX_REGISTER_DEVICE(psam_inf)
+
 extern DEV_DRV_T g_psam_drv ;
-static const DEV_T psam0 = {"psam0",0,&g_psam_drv};
+HX_REGISTER_DEVICE_S(psam0,0,&g_psam_drv,DT_CHAR_CMD);
+
 //-------------------------------------------------------------------
 //const HX_IFMBR atc_inf_mbs[] = {
 //	{IF_UART_ATC,&cdev_uart0,}},
@@ -260,7 +263,6 @@ static const DEV_T psam0 = {"psam0",0,&g_psam_drv};
 //};
 int brd_init(void)
 {
-	
 	HX_DBG_PRINTLN ("BOARD:DQ1300");
 	timer_init_use_for_tickcount(__get_sysclk());
 	for(int i=0;i<sizeof(cdev_gpio_tbl)/sizeof(cdev_gpio_tbl[0]);
@@ -283,9 +285,6 @@ int brd_init(void)
 	
 	hx_register_device((DEV_T*)&g_cdev_sim800c);
 	hx_register_device((DEV_T*)&g_cdev_sim7600c);
-	
-	hx_register_device((DEV_T*)&psam_inf);
-	hx_register_device((DEV_T*)&psam0);
 	
 	
 	return 0;

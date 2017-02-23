@@ -10,31 +10,35 @@
 #include "string.h"
 #include "stddef.h"
 
+HX_DEVTBL_INIT()
 
 static const DEV_T *devtbl[MAX_DEVICE_COUNT] = {0};
 
-const DEV_T **hx_get_devtbl(void)
+const DEV_T **hx_dev_next(const DEV_T** pdev)
 {
-	return devtbl;
+	if(pdev==NULL)
+		return devtbl;
+	else if(pdev>=&devtbl[0] && pdev<&devtbl[MAX_DEVICE_COUNT-1])
+		return pdev+1;
+	else if(pdev==&devtbl[MAX_DEVICE_COUNT-1])
+		return (const DEV_T **)DEVTBL_BASE();
+	else if(pdev>=(const DEV_T **)DEVTBL_BASE() 
+		&& pdev<((const DEV_T **)DEVTBL_LIMIT())-1)
+		return pdev+1;
+	else
+		return NULL;
 }
 
-int hx_devtbl_count(void)
-{
-	int i=0;
-	for(i=0;i<MAX_DEVICE_COUNT;i++){
-		if(devtbl[i] == NULL)
-			break;
-	}
-	return i;
-}
 const void *hx_find_device(int devtype,int devid)
 {
-	for(int i=0;i<MAX_DEVICE_COUNT;i++){
-		if(devtbl[i] == NULL)
-			break;
-		if(devtbl[i]->devtype==devtype && devtbl[i]->devid==devid)
-			return devtbl[i];
-	}
+	const DEV_T **p = hx_dev_next(NULL);
+	do{
+		if(p && *p){
+			if((*p)->devtype==devtype && (*p)->devid==devid)
+				return *p;
+		}
+		p = hx_dev_next(p);
+	}while(p);
 	return NULL;
 }
 const void *hx_interface_get_member(const INF_T *pinf,int m_label)
@@ -56,7 +60,7 @@ int hx_register_device(const DEV_T *dev)
 			return 0;
 		}
 	}
-	return hx_devtbl_count();
+	return -1;
 }
 /*
 	int pos = hx_devtbl_count();
@@ -128,20 +132,18 @@ void hx_device_init(void)
 
 int hx_open(const char *dev_name,const char *param, HX_DEV* dev)
 {
-	int i;
 	if(!dev) return -1;
-	for(i=0;i<MAX_DEVICE_COUNT;i++){
-		const DEV_T *device = devtbl[i];
-		if(device){
-			if(strcmp(device->name,dev_name)==0){
-				dev->pdev = device;
-				const DEV_DRV_T *driver = (const DEV_DRV_T*)(device->driver);
-				if(driver && driver->open)
-						return driver->open(dev,param);
-				return 0;
-			}
+	const DEV_T **pdev = NULL; 
+	do{
+		pdev = hx_dev_next(pdev);
+		if(pdev && *pdev && strcmp((*pdev)->name,dev_name)==0){
+			dev->pdev = *pdev;
+			const DEV_DRV_T *driver = (const DEV_DRV_T*)((*pdev)->driver);
+			if(driver && driver->open)
+				return driver->open(dev,param);
+			return 0;
 		}
-	}
+	}while(pdev);
 	hxt_printf("device not support.%s\n",dev_name);
 	return -1;
 }

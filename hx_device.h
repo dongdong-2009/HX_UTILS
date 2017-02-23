@@ -8,7 +8,10 @@
 
 #define MAX_DEVICE_COUNT				(64)
 
-typedef const struct __DEV_DRV_T DRIVER_T;
+#define IOCTL_CFG_BUFFER			(-1)
+//ioctl(HX_DEV *dev, int cmd, void *buf, uint bufsize);
+
+typedef struct __DEV_DRV_T DRIVER_T;
 
 /*
 	describe io
@@ -22,13 +25,15 @@ typedef struct {
 	device type 
 */
 typedef enum {
-	DT_UNKNOWN = 0,
-	DT_CHAR,
-	DT_UART,
+	DT_UNKNOWN = 0,	
 	
-	DT_BLOCK,
+	DT_CHAR,		//normal char device.
+	DT_STREAM,		//like uart debug info devices.
+	DT_CHAR_CMD,	//send and recive by single frame.and return extra int result
 	
-	DT_INTERFACE,
+	DT_BLOCK,		//normal block device.
+	
+	DT_INTERFACE,	//seldefine or standard interface.
 	DT_PSAM_IF,
 	DT_ATC_IF,
 } DEVTYPE_T;
@@ -39,7 +44,7 @@ typedef enum {
 typedef struct __DEV_T{
 	const char *name;
 	int devid;	
-	DRIVER_T *driver;
+	const DRIVER_T *driver;
 	DEVTYPE_T devtype;
 } DEV_T;
 
@@ -92,7 +97,7 @@ typedef struct __DEV_DRV_T{
 	*/
 	int (*write)(HX_DEV *dev,const void *buf,int size);
 	/*
-	return : =0 is success,others is error
+	return : >=0 is write bytes success,others is error
 	*/
 	int (*close)(HX_DEV *dev);
 	/*
@@ -123,8 +128,8 @@ extern int hx_close(HX_DEV *dev);
 extern int hx_ioctl(HX_DEV *dev,int cmd,...);
 
 extern const DEV_T **hx_get_devtbl(void);
-extern int hx_devtbl_count(void);
-extern void hx_device_init(void);
+//extern int hx_devtbl_count(void);
+//extern void hx_device_init(void);
 extern const void *hx_find_device(int devtype,int devid);
 
 /*
@@ -132,5 +137,39 @@ extern const void *hx_find_device(int devtype,int devid);
 */
 extern int hx_register_device(const DEV_T *dev);
 extern const void *hx_interface_get_member(const INF_T *pinf,int m_label);
+
+
+
+//=======================================================================
+/* import device table session vars */
+extern unsigned int 
+	HX_DEVTBL_SECTION$$Base,
+	HX_DEVTBL_SECTION$$Limit,
+	HX_DEVTBL_SECTION$$Length;
+#define DEVTBL_BASE()	((unsigned int)&HX_DEVTBL_SECTION$$Base)
+#define DEVTBL_LIMIT()	((unsigned int)&HX_DEVTBL_SECTION$$Limit)
+#define DEVTBL_LEN()	((unsigned int)&HX_DEVTBL_SECTION$$Length)
+	
+/* register a extend device on rom */
+#define HX_REGISTER_DEVICE(dev) \
+	static const DEV_T* const __pdev_##dev \
+		__attribute__((section("HX_DEVTBL_SECTION"))) = (const DEV_T*)&(dev); 
+
+#define HX_REGISTER_DEVICE_WEAK(dev)	\
+	const DEV_T* const __pdev_##dev \
+		__attribute__((section("HX_DEVTBL_SECTION"),weak)) = (const DEV_T*)&(dev); 
+	
+/* register a simple HX device on rom.*/
+#define HX_REGISTER_DEVICE_S(name,id,driver,_type)	\
+	static const DEV_T __dev_##name = {#name,id,driver,_type}; \
+	HX_REGISTER_DEVICE(__dev_##name)
+	
+#define HX_REGISTER_DEVICE_WEAK_S(name,id,driver,_type)	\
+	const DEV_T __dev_##name __attribute__((weak)) = {#name,id,driver};\
+	HX_REGISTER_DEVICE_WEAK(&(__dev_##name))
+	
+/* register a null device use for create the device table session */
+#define HX_DEVTBL_INIT()	\
+	HX_REGISTER_DEVICE_S(__null_dev,0,0,0)
 
 #endif

@@ -5,6 +5,11 @@
 
 #ifdef __HX_ENABLE_DEBUG__
 
+int __dummy_op(int p,...)
+{
+	return p;
+}
+
 int hx_vprintf(HX_DEV *d,const char *fmt,va_list va)
 {	
 	if(!g_enable_debug_output)

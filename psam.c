@@ -51,7 +51,10 @@ static int psam_open(HX_DEV *dev,const char *s)
 	g_psam[id].ucSmart_N = 0;
 	return psam_init(&g_psam[id]);
 }
-
+static void *psam_buf;
+static uint psam_bufzise;
+static uint psam_rlen;
+static ushort psam_rst;
 /*
 	HX_DEV *dev, int cmd, const uchar *buf, uint len, uchar *rbuf, *uint rlen)
 */
@@ -72,9 +75,35 @@ static int psam_ioctl(HX_DEV *dev,int cmd,va_list va)
 	}else if(cmd == IOCTL_CFG_PARAM){
 		g_psam[id].ucSmart_N = va_arg(va,uint);
 		return psam_init(&g_psam[id]);
+	}else if(cmd == IOCTL_CFG_BUFFER){
+		psam_buf = va_arg(va,void *);
+		psam_bufzise = va_arg(va,uint);
+		return 0;
 	}
 	return -1;
 }
+
+int psam_write(HX_DEV *dev,const void *buf,int size)
+{
+	int id = dev->pdev->devid;
+	if(id>PSAM_SLOTS_MAX)
+		return -1;
+	psam_rst = psam_cmd(&g_psam[id],buf,size,psam_buf,&psam_rlen);
+	return size;
+}
+int psam_read(HX_DEV *dev,void *buf,int size)
+{
+	uchar *p = buf;
+	if(psam_rlen){
+		uint len = psam_rlen>size?size:psam_rlen;
+		memcpy(p,psam_buf,len);
+		p[len] = psam_rst>>8 & 0x0FFu;
+		p[len+1] = psam_rst>>0 & 0x0FFu;
+		return len+2;
+	}
+	return -1;
+}
+
 static int psam_close(HX_DEV *dev)
 {
 	int id = dev->pdev->devid;
@@ -85,6 +114,8 @@ DEV_DRV_T g_psam_drv = {
 	.open = psam_open,
 	.ioctl = psam_ioctl,
 	.close = psam_close,
+	.read = psam_read,
+	.write = psam_write,
 };
 
 

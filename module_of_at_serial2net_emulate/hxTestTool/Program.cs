@@ -120,237 +120,41 @@ namespace hxTestTool
                     s = s.Trim();
                     if (s.StartsWith("AT"))
                     {
-                        if (s == "AT")
-                        {
-                            ser.puts("AT");
-                            ser.puts("OK");
-                        }
-                        else if (s == "ATE0")
-                        {
-                            ser.puts("ATE0");
-                            ser.puts("OK");
-                        }
-                        else if (s == "ATE1")
-                        {
-                            ser.puts("OK");
-                        }
-                        else if (s == "AT+CSQ?")
-                        {
-                            ser.puts("OK");
-                            ser.puts("+CSQ: 29,99");
-                        }
-                        else if (s == "AT+CREG?")
-                        {
-                            ser.puts("OK");
-                            ser.puts("+REG: 1,1");
-                        }
-                        else if (s == "AT+CIPMODE=1")
-                        {
-                            ser.puts("OK");
-                        }
-                        else if (s == "AT+CIPSHUT")
-                        {
-                            ser.puts("SHUT OK");
-                            ser.puts("OK");
-                        }
-                        else if (s.StartsWith("AT+CIPCSGP"))
-                        {
-                            ser.puts("OK");
-                        }
-                        else if (s.StartsWith("AT+CGSN"))
-                        {
-                            ser.puts("012345678901234");
-                        }
-                        else if (s.StartsWith("AT+CIMI"))
-                        {
-                            ser.puts("112233445566778");
-                        }
-                        else if (s.StartsWith("AT+ZIPCFG="))
-                        {
-                            ser.puts("OK");
-                        }
-                        else if (s.StartsWith("AT+ZIPCALL=1"))
-                        {
-                            ser.puts("OK");
-                            ser.puts("+ZIPCALL: 1,99.88.99.88");
-                        }
-                        else if (s.StartsWith("AT+ZIPSTAT="))
-                        {
-                            int state = sock == null ? 0 : 1;
-                            ser.puts("+ZIPSTAT: 1," + state);
-                        }
-                        else if (s.StartsWith("AT+CIPSTART"))
-                        {
-                            // "AT+CIPSTART="TCP","119.75.218.70","80"
-                            try
-                            {
-                                string v = s.Split('=')[1];
-                                string[] ss = v.Split(',');
-                                string ip_addr = ss[1].Trim(new char[] { '\"' });
-                                string port = ss[2].Trim(new char[] { '\"' });
-                                if (ip_addr != null && port != null)
-                                {
-                                    ser.puts("OK");
-
-                                    IPAddress ip;
-                                    if (FixRemoteIP)
-                                        ip = IPAddress.Parse(rm_ip_fix);
-                                    else
-                                        ip = IPAddress.Parse(ip_addr);
-                                    try
-                                    {
-                                        sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                                        sock.Connect(new IPEndPoint(ip, int.Parse(port)));
-                                        ser.puts("CONNECT");
-                                        sock.BeginReceive(new byte[2048], 0, 2048, SocketFlags.None, new AsyncCallback(sock_recv_directly), ser);
-                                        List<byte> buf = new List<byte>();
-                                        buf.Clear();
-                                        for (;;)
-                                        {
-                                            try
-                                            {
-                                                //byte[] bs = ser.Recive(1024,100);
-                                                //sock.Send(bs);
-                                                //WriteLine("Dev->Server : (" + bs.Length + ") " + bin_to_asc(bs, bs.Length));
-                                                //log.log("TX PACKET : " + bs.Length + " " + bin_to_asc(bs, bs.Length));
-
-                                                byte[] bs = ser.Recive(1);
-                                                if (bs != null && bs.Length == 1)
-                                                {
-                                                    byte b0 = bs[0];
-                                                    if (b0 == '@')
-                                                    {
-                                                        buf.Clear();
-                                                        buf.Add(b0);
-                                                    }
-                                                    else if (bs[0] == '#')
-                                                    {
-                                                        buf.Add(b0);
-                                                        if (sock != null)
-                                                        {
-                                                            int nsend = sock.Send(buf.ToArray());
-                                                            WriteLine("Dev->Server : (" + buf.Count + ") " + bin_to_asc(buf.ToArray(), buf.Count));
-                                                            log.log("TX PACKET : " + buf.Count + " " + bin_to_asc(buf.ToArray(), buf.Count));
-                                                        }
-                                                        else
-                                                        {
-                                                            ser.puts("ERROR");
-                                                        }
-                                                        buf.Clear();
-                                                    }
-                                                    else
-                                                    {
-                                                        if (buf.Count > 4096)
-                                                            buf.Clear();
-                                                        buf.Add(b0);
-                                                    }
-                                                }
-                                            }
-                                            catch
-                                            {
-                                                ; ; ;
-                                            }
-                                        }
-
-                                    }
-                                    catch
-                                    {
-                                    }
-                                }
-                            }
-
-                            catch
-                            {
-
-                            }
-                            ser.puts("ERROR");
-                        }
-                        else if (s.StartsWith("AT+ZIPSEND="))
-                        {
-                            string v = s.Split('=')[1];
-                            string[] ss = v.Split(',');
-                            string sock_id = ss[0];
-                            string data = ss[1];
-                            byte[] bin_data = asc_to_bin(data);
-                            AnalysPacket(1, data);
-                            ser.puts("OK");
-                            if (sock != null)
-                            {
-                                int nsend = sock.Send(bin_data);
-                                ser.puts("+ZIPSEND:1," + nsend);
-                                log.log("TX PACKET : " + data);
-                            }
-                            else
-                            {
-                                ser.puts("ERROR");
-                            }
-                        }
-                        else if (s.StartsWith("AT+ZIPOPEN="))
-                        {
-                            string v = s.Split('=')[1];
-                            string[] ss = v.Split(',');
-                            string sock_id = ss[0];
-                            string tcp0_udp1 = ss[1];
-                            string ip_addr = ss[2];
-                            string port = ss[3];
-                            string local_port = ss[4];
-                            ser.puts("OK");
-
-                            IPAddress ip;
-                            if (FixRemoteIP)
-                            {
-                                port = config.应用参数.使用固定端口;
-                                ip = IPAddress.Parse(rm_ip_fix);
-                            }
-                            else
-                                ip = IPAddress.Parse(ip_addr);
-                            try
-                            {
-                                sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                                sock.Connect(new IPEndPoint(ip, int.Parse(port)));
-                                ser.puts("+ZIPSTAT: " + sock_id + "," + 1);
-
-                                sock.BeginReceive(new byte[2048], 0, 2048, SocketFlags.None, new AsyncCallback(sock_recv), ser);
-                            }
-                            catch
-                            {
-                                ser.puts("+ZIPSTAT: " + sock_id + "," + 0);
-                            }
-
-
-                        }
-                        else
+                        bool dellf = false;
                         {
                             try
                             {
                                 string ss1 = config.应用参数.AT指令扩展匹配字符串;
                                 if (ss1.Trim() == "")
-                                    continue;
+                                    throw new System.Exception();
                                 string[] sss1 = ss1.Split(new char[] { '|' });
                                 if (sss1.Length < 2)
-                                    continue;
+                                    throw new System.Exception();
                                 for (int i = 0; i < sss1.Length; i += 2)
                                 {
                                     if (s == sss1[i])
                                     {
                                         ser.puts(sss1[i + 1]);
+                                        dellf = true;
                                     }
                                 }
                             }
-                            catch { }
+                            catch {
+                            }
 
                             try
                             {
                                 string ss1 = config.应用参数.AT指令扩展起始指令匹配字符串;
                                 if (ss1.Trim() == "")
-                                    continue;
+                                    throw new System.Exception();
                                 string[] sss1 = ss1.Split(new char[] { '|' });
                                 if (sss1.Length < 2)
-                                    continue;
+                                    throw new System.Exception();
                                 for (int i = 0; i < sss1.Length; i += 2)
                                 {
                                     if (s.StartsWith(sss1[i]))
                                     {
+                                        dellf = true;
                                         ser.puts(sss1[i + 1]);
                                     }
                                 }
@@ -361,10 +165,10 @@ namespace hxTestTool
                             {
                                 string ss1 = config.应用参数.透传建立AT指令匹配起始;
                                 if (ss1.Trim() == "")
-                                    continue;
+                                    throw new System.Exception();
                                 string[] sss1 = ss1.Split(new char[] { '|' });
                                 if (sss1.Length < 2)
-                                    continue;
+                                    throw new System.Exception();
                                 if (s.StartsWith(sss1[0]))
                                 {
                                     IPAddress ip = IPAddress.Parse(rm_ip_fix);
@@ -377,6 +181,7 @@ namespace hxTestTool
                                         sock.BeginReceive(new byte[2048], 0, 2048, SocketFlags.None, new AsyncCallback(sock_recv_directly), ser);
                                         List<byte> buf = new List<byte>();
                                         buf.Clear();
+                                        dellf = true;
                                         for (;;)
                                         {
                                             try
@@ -434,6 +239,214 @@ namespace hxTestTool
 
 
                             catch { }
+                        }
+
+                        if (dellf==false)
+                        {
+
+                            if (s == "AT")
+                            {
+                                ser.puts("AT");
+                                ser.puts("OK");
+                            }
+                            else if (s == "ATE0")
+                            {
+                                ser.puts("ATE0");
+                                ser.puts("OK");
+                            }
+                            else if (s == "ATE1")
+                            {
+                                ser.puts("OK");
+                            }
+                            else if (s == "AT+CSQ?")
+                            {
+                                ser.puts("OK");
+                                ser.puts("+CSQ: 29,99");
+                            }
+                            else if (s == "AT+CREG?")
+                            {
+                                ser.puts("OK");
+                                ser.puts("+REG: 1,1");
+                            }
+                            else if (s == "AT+CIPMODE=1")
+                            {
+                                ser.puts("OK");
+                            }
+                            else if (s == "AT+CIPSHUT")
+                            {
+                                ser.puts("SHUT OK");
+                                ser.puts("OK");
+                            }
+                            else if (s.StartsWith("AT+CIPCSGP"))
+                            {
+                                ser.puts("OK");
+                            }
+                            else if (s.StartsWith("AT+CGSN"))
+                            {
+                                ser.puts("012345678901234");
+                            }
+                            else if (s.StartsWith("AT+CIMI"))
+                            {
+                                ser.puts("112233445566778");
+                            }
+                            else if (s.StartsWith("AT+ZIPCFG="))
+                            {
+                                ser.puts("OK");
+                            }
+                            else if (s.StartsWith("AT+ZIPCALL=1"))
+                            {
+                                ser.puts("OK");
+                                ser.puts("+ZIPCALL: 1,99.88.99.88");
+                            }
+                            else if (s.StartsWith("AT+ZIPSTAT="))
+                            {
+                                int state = sock == null ? 0 : 1;
+                                ser.puts("+ZIPSTAT: 1," + state);
+                            }
+                            else if (s.StartsWith("AT+CIPSTART"))
+                            {
+                                // "AT+CIPSTART="TCP","119.75.218.70","80"
+                                try
+                                {
+                                    string v = s.Split('=')[1];
+                                    string[] ss = v.Split(',');
+                                    string ip_addr = ss[1].Trim(new char[] { '\"' });
+                                    string port = ss[2].Trim(new char[] { '\"' });
+                                    if (ip_addr != null && port != null)
+                                    {
+                                        ser.puts("OK");
+
+                                        IPAddress ip;
+                                        if (FixRemoteIP)
+                                            ip = IPAddress.Parse(rm_ip_fix);
+                                        else
+                                            ip = IPAddress.Parse(ip_addr);
+                                        try
+                                        {
+                                            sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                                            sock.Connect(new IPEndPoint(ip, int.Parse(port)));
+                                            ser.puts("CONNECT");
+                                            sock.BeginReceive(new byte[2048], 0, 2048, SocketFlags.None, new AsyncCallback(sock_recv_directly), ser);
+                                            List<byte> buf = new List<byte>();
+                                            buf.Clear();
+                                            for (;;)
+                                            {
+                                                try
+                                                {
+                                                    //byte[] bs = ser.Recive(1024,100);
+                                                    //sock.Send(bs);
+                                                    //WriteLine("Dev->Server : (" + bs.Length + ") " + bin_to_asc(bs, bs.Length));
+                                                    //log.log("TX PACKET : " + bs.Length + " " + bin_to_asc(bs, bs.Length));
+
+                                                    byte[] bs = ser.Recive(1);
+                                                    if (bs != null && bs.Length == 1)
+                                                    {
+                                                        byte b0 = bs[0];
+                                                        if (b0 == '@')
+                                                        {
+                                                            buf.Clear();
+                                                            buf.Add(b0);
+                                                        }
+                                                        else if (bs[0] == '#')
+                                                        {
+                                                            buf.Add(b0);
+                                                            if (sock != null)
+                                                            {
+                                                                int nsend = sock.Send(buf.ToArray());
+                                                                WriteLine("Dev->Server : (" + buf.Count + ") " + bin_to_asc(buf.ToArray(), buf.Count));
+                                                                log.log("TX PACKET : " + buf.Count + " " + bin_to_asc(buf.ToArray(), buf.Count));
+                                                            }
+                                                            else
+                                                            {
+                                                                ser.puts("ERROR");
+                                                            }
+                                                            buf.Clear();
+                                                        }
+                                                        else
+                                                        {
+                                                            if (buf.Count > 4096)
+                                                                buf.Clear();
+                                                            buf.Add(b0);
+                                                        }
+                                                    }
+                                                }
+                                                catch
+                                                {
+                                                    ; ; ;
+                                                }
+                                            }
+
+                                        }
+                                        catch
+                                        {
+                                        }
+                                    }
+                                }
+
+                                catch
+                                {
+
+                                }
+                                ser.puts("ERROR");
+                            }
+                            else if (s.StartsWith("AT+ZIPSEND="))
+                            {
+                                string v = s.Split('=')[1];
+                                string[] ss = v.Split(',');
+                                string sock_id = ss[0];
+                                string data = ss[1];
+                                byte[] bin_data = asc_to_bin(data);
+                                AnalysPacket(1, data);
+                                ser.puts("OK");
+                                if (sock != null)
+                                {
+                                    int nsend = sock.Send(bin_data);
+                                    ser.puts("+ZIPSEND:1," + nsend);
+                                    log.log("TX PACKET : " + data);
+                                }
+                                else
+                                {
+                                    ser.puts("ERROR");
+                                }
+                            }
+                            else if (s.StartsWith("AT+ZIPOPEN="))
+                            {
+                                string v = s.Split('=')[1];
+                                string[] ss = v.Split(',');
+                                string sock_id = ss[0];
+                                string tcp0_udp1 = ss[1];
+                                string ip_addr = ss[2];
+                                string port = ss[3];
+                                string local_port = ss[4];
+                                ser.puts("OK");
+
+                                IPAddress ip;
+                                if (FixRemoteIP)
+                                {
+                                    port = config.应用参数.使用固定端口;
+                                    ip = IPAddress.Parse(rm_ip_fix);
+                                }
+                                else
+                                    ip = IPAddress.Parse(ip_addr);
+                                try
+                                {
+                                    sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                                    sock.Connect(new IPEndPoint(ip, int.Parse(port)));
+                                    ser.puts("+ZIPSTAT: " + sock_id + "," + 1);
+
+                                    sock.BeginReceive(new byte[2048], 0, 2048, SocketFlags.None, new AsyncCallback(sock_recv), ser);
+                                }
+                                catch
+                                {
+                                    ser.puts("+ZIPSTAT: " + sock_id + "," + 0);
+                                }
+
+
+                            }
+                            else
+                            {
+                                ser.puts("***ERROR");
+                            }
                         }
                     }
                     else if (s.StartsWith("TK"))
