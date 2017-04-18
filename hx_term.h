@@ -33,12 +33,12 @@
 /*
  * commad line have chars sum
  */
-#define MAX_CHARS_LINE				(512)
+#define MAX_CHARS_LINE				(800)
 
 /*
  * cmd line buffer size
  */
-#define SIZE_OF_LINE_BUFFER			(512)
+#define SIZE_OF_LINE_BUFFER			(800)
 
 /*
  * allow max of cmd arg string count

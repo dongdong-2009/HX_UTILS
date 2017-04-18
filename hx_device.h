@@ -1,6 +1,7 @@
 #ifndef __HX_DEVICE_H__
 #define __HX_DEVICE_H__
 
+#include "hx_rtos_surpport.h"
 #include "stdarg.h"
 #include "stdint.h"
 
@@ -9,6 +10,7 @@
 #define MAX_DEVICE_COUNT				(64)
 
 #define IOCTL_CFG_BUFFER			(-1)
+#define IOCTL_PSAM_RST				(9)
 //ioctl(HX_DEV *dev, int cmd, void *buf, uint bufsize);
 
 typedef struct __DEV_DRV_T DRIVER_T;
@@ -46,6 +48,9 @@ typedef struct __DEV_T{
 	int devid;	
 	const DRIVER_T *driver;
 	DEVTYPE_T devtype;
+#ifdef HXUTILS_RTOS_SURPPORT
+	int *opencntp;		//device open count 
+#endif
 } DEV_T;
 
 /*
@@ -72,6 +77,7 @@ typedef struct __HX_DEVICE {
 		const DEV_T *pdev;
 		const INF_T *pinf;
 	};
+	HX_MUTEX_T mutex;
 } HX_DEV;
 
 /*
@@ -126,7 +132,9 @@ extern int hx_read(HX_DEV *dev,void *buf,int size);
 extern int hx_write(HX_DEV *dev,const void *buf,int size);
 extern int hx_close(HX_DEV *dev);
 extern int hx_ioctl(HX_DEV *dev,int cmd,...);
+extern int hx_flush(HX_DEV *dev);
 
+extern const DEV_T **hx_dev_next(const DEV_T** pdev);
 extern const DEV_T **hx_get_devtbl(void);
 //extern int hx_devtbl_count(void);
 //extern void hx_device_init(void);
@@ -138,7 +146,7 @@ extern const void *hx_find_device(int devtype,int devid);
 extern int hx_register_device(const DEV_T *dev);
 extern const void *hx_interface_get_member(const INF_T *pinf,int m_label);
 
-
+extern void hx_device_init(void);
 
 //=======================================================================
 /* import device table session vars */
@@ -159,7 +167,13 @@ extern unsigned int
 	const DEV_T* const __pdev_##dev \
 		__attribute__((section("HX_DEVTBL_SECTION"),weak)) = (const DEV_T*)&(dev); 
 	
-/* register a simple HX device on rom.*/
+/* 
+	register a simple HX device on rom.
+	name : const char * 
+	id : int
+	driver : const DRIVER_T *
+	_type : DEVTYPE_T 
+*/
 #define HX_REGISTER_DEVICE_S(name,id,driver,_type)	\
 	static const DEV_T __dev_##name = {#name,id,driver,_type}; \
 	HX_REGISTER_DEVICE(__dev_##name)
@@ -170,6 +184,6 @@ extern unsigned int
 	
 /* register a null device use for create the device table session */
 #define HX_DEVTBL_INIT()	\
-	HX_REGISTER_DEVICE_S(__null_dev,0,0,0)
+	HX_REGISTER_DEVICE_S(__null_dev,0,NULL,DT_CHAR)
 
 #endif

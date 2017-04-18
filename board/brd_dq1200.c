@@ -16,6 +16,8 @@ HX_DEV g_u0_com;
 
 extern unsigned int __get_fpclk(void);
 
+__weak unsigned int __get_fpclk(void){return 0;}
+
 //-----------------------------------------------------------------
 void mb_iomode(uint port,uint pin,uint mode)
 {
@@ -309,8 +311,8 @@ const ATC_DEV_T g_cdev_me3630_c1b = {
 //---------------------------------------------------------------------------
 //static char card_res_buf[256];
 //static int card_res_len;
-//extern int EXECUTE_PSAM_CMD(const char *cmd_buf,int cmd_len,char *res_buf,int *p_res_len);
-//extern int EXECUTE_CPUCARD_CMD(const char *cmd_buf,int cmd_len,char *res_buf,int *p_res_len);
+__weak int EXECUTE_PSAM_CMD(const char *cmd_buf,int cmd_len,char *res_buf,int *p_res_len){return 0;}
+__weak int EXECUTE_CPUCARD_CMD(const char *cmd_buf,int cmd_len,char *res_buf,int *p_res_lten){return 0;}
 //extern int find_card(int *card);
 //extern uint16_t PsamInit(uint8_t ucPsamPos,unsigned long ulPsamBaud);
 

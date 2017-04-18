@@ -36,12 +36,16 @@ extern uint32_t HX_MSB_B2DW(const void *data);
 extern uint32_t HX_LSB_B2DW(const void *data);
 extern uint64_t HX_MSB_B2QW(const void *data);
 extern uint64_t HX_LSB_B2QW(const void *data);
-extern void HX_LSB_W2B(uint16_t v,void *p);
-extern void HX_MSB_W2B(uint16_t v,void *p);
-extern void HX_MSB_DW2B(uint32_t v,void *p);
-extern void HX_LSB_DW2B(uint32_t v,void *p);
-extern void HX_MSB_QW2B(uint64_t v,void *p);
-extern void HX_LSB_QW2B(uint64_t v,void *p);
+extern uint8_t *HX_LSB_W2B(uint16_t v,void *p);
+extern uint8_t *HX_MSB_W2B(uint16_t v,void *p);
+extern uint8_t *HX_MSB_DW2B(uint32_t v,void *p);
+extern uint8_t *HX_LSB_DW2B(uint32_t v,void *p);
+extern uint8_t *HX_MSB_QW2B(uint64_t v,void *p);
+extern uint8_t *HX_LSB_QW2B(uint64_t v,void *p);
+extern void HX_W_REV(__packed uint16_t *v);
+extern void HX_DW_REV(__packed uint32_t *v);
+extern void HX_QW_REV(__packed uint64_t *v);
+
 
 //==========================================================
 // convert str <=> value with fmt

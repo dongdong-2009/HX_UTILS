@@ -1,6 +1,17 @@
 #ifndef HX_CLCD_H__
 #define HX_CLCD_H__
 
+extern void hx_clcd_init(void);
+extern void hx_clcd_clear(void);
+
+extern void hx_clcd_draw_bmp(
+	int col,	//colume
+	int page,	//page
+	int cols,	//colume count
+	int pages,	//page count
+	const void *bmpdata,	//data
+	int inverse);	//0:normal,1:inverse
+		
 extern void hx_clcd_disp_char(int x,int y,char c,int inverse);
 extern int hx_clcd_disp_chars(
 	int x,		//ап

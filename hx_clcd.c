@@ -1,5 +1,5 @@
 #include "hx_utils.h"
-#include "hx_board.h"
+//#include "hx_board.h"
 #include "string.h"
 #include "stdio.h"
 
@@ -23,10 +23,13 @@ page||||....|||
 #define CLCD_CHAR_COLS			(CLCD_PXL_COLS/CLCD_CHAR_WIDTH)
 #define CLCD_CHAR_ROWS			(CLCD_PXL_ROWS/CLCD_CHAR_HEIGHT)
 
+
 extern void clcd_set_pos(int col,int page);
 extern void clcd_wr_data(unsigned char data);
 extern void *font_ascii(int c);
-extern void *font_wchar(int wc);
+extern void *font_wchar(int wc, void *buf32byte);
+extern void lcd_init(void);
+extern void lcd_clear(void);
 /*
 void clcd_set_pos(int col,int page)
 {
@@ -60,18 +63,49 @@ void *font_wchar(int wc)
 }
 */
 
+/*
+void *font_wchar(int wc, void *buf32byte)
+{
+	char buf[32];
+	unsigned code = (unsigned)wc - 0xA0A0u ;
+    unsigned section = (unsigned char)(code>>8) ;
+    unsigned position=(unsigned char)(code) ;
+    unsigned ofs=((section-1)*94+(position-1)) * 32;
+	int blk = ofs/1024;
+	int pos = ofs%1024;
+	flash_read(0,1+blk,0+pos,32,buf32byte);
+	return buf32byte;
+}
+
+*/
+
+
+void hx_clcd_init(void)
+{
+	HX_OS_LOCK();
+	lcd_init();
+	HX_OS_UNLOCK();
+}
+void hx_clcd_clear(void)
+{
+	HX_OS_LOCK();
+	lcd_clear();
+	HX_OS_UNLOCK();
+}
+
 void hx_clcd_draw_bmp(
 	int col,	//colume
 	int page,	//page
 	int cols,	//colume count
 	int pages,	//page count
-	void *bmpdata,	//data
+	const void *bmpdata,	//data
 	int inverse)	//0:normal,1:inverse
 {
-	unsigned char *d = bmpdata;
+	const unsigned char *d = bmpdata;
 	int x=0,y=0;
 	int page_end = page+pages;
 	int col_end = col+cols;
+	HX_OS_LOCK();
 	for(int p=page;p<page_end;p++){
 		clcd_set_pos(col,p);
 		for(int c=col;c<col_end;c++){
@@ -84,20 +118,24 @@ void hx_clcd_draw_bmp(
 		x=0;
 		y++;
 	}
+	HX_OS_UNLOCK();
 }
 static void hx_clcd_disp_ascii(int x,int y,char c,int inverse)
 {
 	int page = y * (CLCD_CHAR_HEIGHT/CLCD_PAGE_SIZE);
 	int pages = CLCD_CHAR_HEIGHT/CLCD_PAGE_SIZE;
+	void *font = font_ascii(c);
 	hx_clcd_draw_bmp(x*CLCD_CHAR_WIDTH,page,CLCD_CHAR_WIDTH,pages,
-		font_ascii(c),inverse);
+		font,inverse);
 }
 static void hx_clcd_disp_wchar(int x,int y,unsigned short c,int inverse)
 {
+	char buff[32];
 	int page = y * (CLCD_CHAR_HEIGHT/CLCD_PAGE_SIZE);
 	int pages = CLCD_CHAR_HEIGHT/CLCD_PAGE_SIZE;
+	void *font = font_wchar(c,buff);
 	hx_clcd_draw_bmp(x*CLCD_CHAR_WIDTH,page,CLCD_CHAR_WIDTH*2,pages,
-		font_wchar(c),inverse);
+		font,inverse);
 }
 static int hx_clcd_disp_chars(
 	int x,			//colume
@@ -173,13 +211,13 @@ int hx_clcd_disp_str(
 
 void hx_clcd_disp_text(char *dbuf)
 {
-	lcd_clear();
+	//lcd_clear();
 	char *e;
 	char *p = strtok_r(dbuf,"\n",&e);
 	p = hx_strtrim2(p,"\r");
 	int i=0;
 	while(p && i<8){
-		lcd_disp_at(i++, 0, p, -1, 0);
+		hx_clcd_disp_str(0,i++,p, 0, 0, 0);
 		p = strtok_r(NULL,"\n",&e);
 		p = hx_strtrim2(p,"\r");
 	}

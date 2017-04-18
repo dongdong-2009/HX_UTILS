@@ -21,7 +21,18 @@ extern void hxl_gets_block(HX_DEV *d, char *buff, int buff_size);
 extern int hxl_gets_timeout(HX_DEV *d, char *buff, int buff_size,int timeout);
 extern int hxl_gets_timeout2(HX_DEV *d, char *buff, int buff_size,int timeout,int minchars);
 extern int hxl_gets_timeout3(HX_DEV *d, char *buff, int buff_size,int timeout,char *prefix);
-
+typedef struct {
+	const char *str;
+	/*
+	 * -1 is for default
+	 */
+	int match0_prefix1_sufix2_contains3;
+} GETS_MATCH_T;
+/*
+ * return <0 is timeout, >=0 is index of match
+ */
+int hxl_gets_timeout_match(HX_DEV *d, char *buff,int buff_size,int timeout,
+		const GETS_MATCH_T *tbl, int tblsize);
 /*
  * send
  */
@@ -31,6 +42,7 @@ extern void hxl_put(HX_DEV *d, const char *s);
 extern void hxl_puts(HX_DEV *d, const char *s);
 extern int hxl_vprintf(HX_DEV *d, const char *fmt, va_list va);
 extern int hxl_printf(HX_DEV *d, const char *format, ...);
+extern void hxl_flush(HX_DEV *d);
 extern int hxl_open_uart(const char *name, int bps, HX_DEV *d);
 extern int hxl_open_stdio(int stdfile, HX_DEV *d);
 

@@ -4,6 +4,8 @@
 #include "compile.h"
 #include "stdint.h"
 
+#define USE_RTX		1
+
 extern void cpu_uart_interrupt_ctrl(int pid,int en);
 
 int cpu_install_irq( int intnr, void *handler, void *arg );

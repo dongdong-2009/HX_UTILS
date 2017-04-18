@@ -21,7 +21,7 @@ static PsamSlot_t PsamSlotTbl[PSAM_SLOTS_MAX] = {0};
 static PsamSt g_psam[PSAM_SLOTS_MAX] = {0};
 static int psam_open(HX_DEV *dev,const char *s)
 {
-	
+	int res;
 	int id = dev->pdev->devid;
 	if(id>PSAM_SLOTS_MAX)
 		return -1;
@@ -49,7 +49,10 @@ static int psam_open(HX_DEV *dev,const char *s)
 	g_psam[id].slot = id;
 	g_psam[id].bps = PSAM_BPS_9600;
 	g_psam[id].ucSmart_N = 0;
-	return psam_init(&g_psam[id]);
+	HX_OS_LOCK();
+	res = psam_init(&g_psam[id]);
+	HX_OS_UNLOCK();
+	return res;
 }
 static void *psam_buf;
 static uint psam_bufzise;
@@ -60,6 +63,7 @@ static ushort psam_rst;
 */
 static int psam_ioctl(HX_DEV *dev,int cmd,va_list va)
 {
+	int res;
 	int id = dev->pdev->devid;
 	if(id>PSAM_SLOTS_MAX)
 		return -1;
@@ -68,17 +72,31 @@ static int psam_ioctl(HX_DEV *dev,int cmd,va_list va)
 		uint len = va_arg(va,uint);
 		uchar *rbuf = va_arg(va,uchar*);
 		uint *rlen = va_arg(va,uint*);
-		return psam_cmd(&g_psam[id],buf,len,rbuf,rlen);
+		HX_OS_LOCK();
+		res = psam_cmd(&g_psam[id],buf,len,rbuf,rlen);
+		HX_OS_UNLOCK();
+		return res;
 	}else if(cmd == IOCTL_CFG_BPS){
 		g_psam[id].bps = va_arg(va,uint);
-		return psam_init(&g_psam[id]);
+		HX_OS_LOCK();
+		res = psam_init(&g_psam[id]);
+		HX_OS_UNLOCK();
+		return res;
 	}else if(cmd == IOCTL_CFG_PARAM){
 		g_psam[id].ucSmart_N = va_arg(va,uint);
-		return psam_init(&g_psam[id]);
+		HX_OS_LOCK();
+		res = psam_init(&g_psam[id]);
+		HX_OS_UNLOCK();
+		return res;
 	}else if(cmd == IOCTL_CFG_BUFFER){
 		psam_buf = va_arg(va,void *);
 		psam_bufzise = va_arg(va,uint);
 		return 0;
+	}else if(cmd == IOCTL_PSAM_RST){
+		HX_OS_LOCK();
+		res = psam_init(&g_psam[id]);
+		HX_OS_UNLOCK();
+		return res;
 	}
 	return -1;
 }
@@ -88,7 +106,9 @@ int psam_write(HX_DEV *dev,const void *buf,int size)
 	int id = dev->pdev->devid;
 	if(id>PSAM_SLOTS_MAX)
 		return -1;
+	HX_OS_LOCK();
 	psam_rst = psam_cmd(&g_psam[id],buf,size,psam_buf,&psam_rlen);
+	HX_OS_UNLOCK();
 	return size;
 }
 int psam_read(HX_DEV *dev,void *buf,int size)
@@ -107,7 +127,9 @@ int psam_read(HX_DEV *dev,void *buf,int size)
 static int psam_close(HX_DEV *dev)
 {
 	int id = dev->pdev->devid;
+	HX_OS_LOCK();
 	psam_stop(&g_psam[id]);
+	HX_OS_UNLOCK();
 	return 0;
 }
 DEV_DRV_T g_psam_drv = {
@@ -263,12 +285,12 @@ short tkSmartCardPosSet(ushort uiPos)
 
 void psam_stop(PsamSt *psam)
 {
-    //停活时序
+    //
     //RST=L
     //CLK=L
-    //VPP停活(如果它已被激活)
+    //VPP
     //I/O=A
-    //VCC停活
+    //VCC??
     psam_rst_ctrl(0);
     delay_10us(10);  //100us
     psam_clk_ctrl(0);
@@ -301,13 +323,13 @@ static int psam_send_data(
 	uchar ucSmart_N,
 	uint bps)
 {
-    uchar parity;   //奇偶校验位
+    uchar parity;   //?????
 
     //uchar ucTmp;
     uchar ucTrData;  //
     short i;
     short iCurrTrLen;
-    uchar ucParityCnt;   //容错3-5次
+    uchar ucParityCnt;   //??3-5?
 
     //tkSmartCardTimerRst();
     psam_data_ctrl(1);
@@ -328,27 +350,27 @@ static int psam_send_data(
             ucTrData>>=1;
         }
         psam_data_ctrl(parity & 0x01);// 1 bit Parity
-        timer_delay(_TCLK/bps-_TCLK/1000000*2);  // 多延时1us
+        timer_delay(_TCLK/bps-_TCLK/1000000*2);  // ???1us
         psam_data_ctrl(1);  // 1 bit stop
         timer_delay(_TCLK/bps-_TCLK/1000000);
-        //至少2etu的保护时间，在保护时间接口设备和卡都应保持接收状态
-        //因此I/O状态为Z
+        //??2etu?????,???????????????????
+        //??I/O???Z
         psam_data_dir(0);
-        //io变 L 重发数据 5次
+        //io? L ???? 5?
         if((psam_data_getval())==0)
         {
-            // 3-5次差错信号
+            // 3-5?????
             ucParityCnt++;
             if(ucParityCnt<5)
             {
-                //检测到差错信号至少2个etu的延时
+                //?????????2?etu???
                 psam_data_dir(1);
                 psam_data_ctrl(1);
                 timer_delay(_TCLK/bps);
             }
             else
             {
-                // 差错后报错
+                // ?????
                 psam_data_dir(1);
                 psam_data_ctrl(1);
                 return 1;
@@ -363,9 +385,9 @@ static int psam_send_data(
         }
         if(iCurrTrLen<len)
         {
-            //发送最后一个字符后，不加延时，直接到接收
+            //?????????,????,?????
             timer_delay(_TCLK*3/2/bps);
-            //保护时间
+            //????
             for(i=0; i<ucSmart_N; i++)
             {
                 timer_delay(_TCLK/bps);
@@ -378,8 +400,8 @@ static int psam_send_data(
 
 static uchar psam_read_byte(uchar *ucOutData,uint bps)
 {
-    uchar ucSmartCardRcData=0;  // 数据
-    uchar ucSmartCardRcParity;  // 校验
+    uchar ucSmartCardRcData=0;  // ??
+    uchar ucSmartCardRcParity;  // ??
     int cLoop;
     for(cLoop=0; cLoop<8; cLoop++)
     {
@@ -409,8 +431,8 @@ static uchar psam_read_byte(uchar *ucOutData,uint bps)
 
 static short psam_reset_head(uchar * ucpRcDataBuf,uint bps)
 {
-    uchar ucRcData;  // 接收数据
-    uchar parity;   //奇偶校验位
+    uchar ucRcData;  // ????
+    uchar parity;   //?????
     uchar ucTmp;
 
     //short i;
@@ -422,11 +444,11 @@ static short psam_reset_head(uchar * ucpRcDataBuf,uint bps)
         //ulTmp=TIME_COUNTER_D;
         do
         {
-            //复位是上升沿后400-40000个周期后的数据
-            // 3.579  Fcplk=28800000 计数321828 11.17ms
+            //???????400-40000???????
+            // 3.579  Fcplk=28800000 ??321828 11.17ms
             //20000=11.18ms
 			//30ms???
-            if(timer_getval()>(_TCLK/1000*30))//921828)   // 20140506 住建部测试秘钥卡有一张超时
+            if(timer_getval()>(_TCLK/1000*30))//921828)   // 20140506 ?????????????
             {
                 return 10;
             }
@@ -436,29 +458,29 @@ static short psam_reset_head(uchar * ucpRcDataBuf,uint bps)
         // ulTmp=TIME_COUNTER_D;
         timer_delay(3*_TCLK/bps/2-_TCLK/1000000);   //delay 1.5 baud time
 
-        //接收
+        //??
         parity=psam_read_byte( & ucRcData,bps);
 
 		//delay_f(bps/2);
         timer_delay(_TCLK/bps/2);   //delay 1 baud time
 
-        //奇偶校验
+        //????
         ucTmp = calc_parity(ucRcData);
 
         //timer out 4.8us 280cycles every cycles=0.017361107us
         if(ucTmp==parity)
         {
-            //接收正确
+            //????
             *ucpRcDataBuf=ucRcData;
             timer_delay(_TCLK/bps);   //delay 1 baud time
             return 0;
         }
         else
         {
-            //错误信号
+            //????
             psam_data_dir(1);
             psam_data_ctrl(0);
-            // 1-2个etu差错信号
+            // 1-2?etu????
             timer_delay(_TCLK/bps);   //delay 1 baud time
             psam_data_dir(0);
         }
@@ -468,14 +490,14 @@ static short psam_reset_head(uchar * ucpRcDataBuf,uint bps)
 
 static short psam_recv_data(short iRcLen,uchar * ucpRcDataBuf,uint bps)
 {
-    uchar parity;   //奇偶校验位
+    uchar parity;   //?????
  //   short i;
     short iCurrRcLen;
 
     //uint ulTmp;
     //uint ulTmp2;
     uchar ucTmp;
-    uchar ucParityCnt=0;   //容错3-5次
+    uchar ucParityCnt=0;   //??3-5?
     uchar ucRcData;
     uint ulStarDelay;
     if(bps>PSAM_BPS_9600)
@@ -495,8 +517,8 @@ static short psam_recv_data(short iRcLen,uchar * ucpRcDataBuf,uint bps)
 //			T3TCR = 1;	//enable_timer
 //			do
 //			{
-//				//复位是上升沿后400-40000个周期后的数据
-//				//接收字符时是12-9600etu字符间隔
+//				//???????400-40000???????
+//				//??????12-9600etu????
 //				if(ulTIMER3_COUNTER>50)
 //				{
 //					T3TCR = 0; //disable timer
@@ -504,12 +526,12 @@ static short psam_recv_data(short iRcLen,uchar * ucpRcDataBuf,uint bps)
 //				}
 //			}while((psam_data_getval)!=0);
 //			T3TCR = 0; //disable timer
-        //ulTmp2=401000;   //250ms  9600 个etu
+        //ulTmp2=401000;   //250ms  9600 ?etu
         timer_setval(0);
         do
         {
-            //复位是上升沿后400-40000个周期后的数据
-            //接收字符时是12-9600etu字符间隔
+            //???????400-40000???????
+            //??????12-9600etu????
             //WDTFeed();
             if(timer_getval()>_TCLK/bps*ulStarDelay)
             {
@@ -519,15 +541,15 @@ static short psam_recv_data(short iRcLen,uchar * ucpRcDataBuf,uint bps)
 
 
         timer_delay(3*_TCLK/bps/2-_TCLK/1000000);   //delay 1.5 baud time
-        // 下降沿起始位的 1.5个 etu时间 取样
+        // ??????? 1.5? etu?? ??
         parity=psam_read_byte( & ucRcData,bps);
-        // 延时 1个etu
+        // ?? 1?etu
         timer_delay(_TCLK/bps-4*_TCLK/1000000);   //delay 1 baud time
         ucTmp=calc_parity(ucRcData);
 
         if(ucTmp==parity)
         {
-            //接收正确
+            //????
             *ucpRcDataBuf=ucRcData;
             ucpRcDataBuf++;
             iCurrRcLen++;
@@ -549,10 +571,10 @@ static short psam_recv_data(short iRcLen,uchar * ucpRcDataBuf,uint bps)
                 return 20;
             }
             // end by tiger 2013-07-30
-            //错误信号 10.5 + - 0.2etu发送差错信号  最少1etu 最大2etu
+            //???? 10.5 + - 0.2etu??????  ??1etu ??2etu
             psam_data_dir(1);
             psam_data_ctrl(0);
-            // 1-2个etu差错信号
+            // 1-2?etu????
             timer_delay(3*_TCLK/bps/2);   //delay 1 baud time
             psam_data_dir(0);
         }
@@ -577,7 +599,7 @@ short psam_consult(PsamSt *psam,uint bps, uchar *rbuf)
 		if(bps<=tbl[i*2+1])
 			ucFiDi = tbl[i*2];
 	}
-        //支持11 12 13 18 94 38 :
+        //??11 12 13 18 94 38 :
 		//9600 19200 38400 115200 55800 57600
     const ushort FI_Fi_Table[]= {372,372,558,744,1116,1488,1860,0
                                     ,0,512,768,1024,1536,2048,0,0
@@ -611,10 +633,10 @@ short psam_consult(PsamSt *psam,uint bps, uchar *rbuf)
 //    uchar ucTC2;
 //	uchar ucTD2;
 //		uchar ucSmartCard_PPSS;
-//		//pps0 根据b5,b6,b7是否等于1来指明可选字节PPS1,PPS2,PPS3 是否存在。
-//		//位b4-b1运送参数T的值以建议一种协议。位b8=0保留
+//		//pps0 ??b5,b6,b7????1???????PPS1,PPS2,PPS3 ?????
+//		//?b4-b1????T???????????b8=0??
 //		uchar ucSmartCard_PPS0;
-//		//pps1 允许IFD向卡建议F和D的值。按TA1中相同方法进行编码
+//		//pps1 ??IFD????F?D????TA1?????????
 //		uchar ucSmartCard_PPS1;
 //		uchar ucSmartCard_PPS2;
 //		uchar ucSmartCard_PPS3;
@@ -689,30 +711,30 @@ short psam_consult(PsamSt *psam,uint bps, uchar *rbuf)
     }
     if(ucTABCD_BITMAP&0x01)
     {
-        //TA2 存在 特定模式
+        //TA2 ?? ????
         if(!(ucTA2&0x10))
         {
-            //特定模式测试20111101
+            //??????20111101
             ulCurrBond=PSAM_CLK_FREQ*DI_Di_Table[ucEndDi];
             ulCurrBond/=FI_Fi_Table[ucEndFi];
             psam->bps=ulCurrBond;
         }
         return 0;
     }
-    // 如果TA1 不存在不进行协商
+    // ??TA1 ????????
     if(!(ucTABCD_BITMAP&0x10))
     {
         return 0;
     }
 
 
-    //ATR后增加保护时间
+    //ATR???????
     timer_delay(_TCLK/PSAM_BPS_9600);
     /* begin by tiger 2013-11-20
     	tkSmartCardDelay(ulSMTCARD_DELAY3); //delay half baud time  300=27.8us
     	tkSmartCardDelay(ulSMTCARD_DELAY3); //delay half baud time  300=27.8us
     */
-    //保护时间
+    //????
     for(i=0; i<psam->ucSmart_N; i++)
     {
         timer_delay(_TCLK/PSAM_BPS_9600);
@@ -744,7 +766,7 @@ short psam_consult(PsamSt *psam,uint bps, uchar *rbuf)
             }
             else
             {
-                //协商失败
+                //????
                 iProcess=9000;
             }
             break;
@@ -803,7 +825,7 @@ short psam_consult(PsamSt *psam,uint bps, uchar *rbuf)
             }
             else
             {
-                //pps1 不存在，应使用Fd和Dd
+                //pps1 ???,???Fd?Dd
                 iProcess=10000;
                 break;
             }
@@ -826,13 +848,13 @@ short psam_consult(PsamSt *psam,uint bps, uchar *rbuf)
                     break;
                 }
             }
-            //接收长度不够
+            //??????
             if(iRcLen<iTmp)
             {
                 iProcess=9000;
                 break;
             }
-            //应用协商得到的数值
+            //?????????
             ulCurrBond=PSAM_CLK_FREQ*DI_Di_Table[ucCurrDi];
             ulCurrBond/=FI_Fi_Table[ucCurrFi];
             psam->bps=ulCurrBond;
@@ -894,18 +916,18 @@ static int psam_reset_info(PsamSt *psam, uchar *rbuf, uint *rlen)
 int psam_reset_cold(PsamSt *psam, uchar *rbuf, uint *rlen)
 {
     int res;
-    psam_stop(psam);	//停活时序
+    psam_stop(psam);	//????
 
     psam_vcc_ctrl(1);
     delay_10us(10);  //100us
     psam_clk_ctrl(1);
     psam_data_dir(0);
     delay_10us(40);   // 400us
-    psam_rst_ctrl(1);  //施加clk后，rst=L至少400个时钟周期
-    //RST=H之后的400-40000个时间周期内收到数据，如果应答在40000个时间周期
-    //内仍未开始，则RST上的信号应被置L，电路停活
+    psam_rst_ctrl(1);  //??clk?,rst=L??400?????
+    //RST=H???400-40000??????????,?????40000?????
+    //?????,?RST???????L,????
 
-    //加入ts测试
+    //??ts??
     res=psam_reset_info(psam,rbuf,rlen);
     return res;
 }
@@ -914,13 +936,13 @@ short psam_reset_warm(PsamSt *psam, uchar *rbuf, uint *rlen)
 {
     short iRetVal;
     //
-    psam_rst_ctrl(0);  //RST=L至少400个时钟周期
+    psam_rst_ctrl(0);  //RST=L??400?????
     delay_10us(40);  //360us
-    psam_rst_ctrl(1);  //施加clk后，rst=L至少400个时钟周期
-    //RST=H之后的400-40000个时间周期内收到数据，如果应答在40000个时间周期
-    //内仍未开始，则RST上的信号应被置L，电路停活
+    psam_rst_ctrl(1);  //??clk?,rst=L??400?????
+    //RST=H???400-40000??????????,?????40000?????
+    //?????,?RST???????L,????
 
-    //加入ts测试
+    //??ts??
     iRetVal=psam_reset_info(psam,rbuf,rlen);
     return iRetVal;
 }
@@ -969,7 +991,7 @@ static ushort _psam_cmd(PsamSt *psam,
 		res<<=8;
         res|=BPrc;
 		*rlen=0;
-		return res;	//60 6c 重发
+		return res;	//60 6c ??
 	}
 	if(Lc){
 		//send data
@@ -1082,7 +1104,7 @@ int psam_init(PsamSt *psam)
     {
 		res = psam_consult(psam,38400,rbuf);
 		if(res)
-			return -1;
+			return 0;
     }
     return 0;
 }

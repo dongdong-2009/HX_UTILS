@@ -62,12 +62,29 @@ int hxd_uart_ioctl(HX_DEV *dev,int cmd,va_list va)
 	int rxpos = prv->rx_pos;
 	char *rxbuf = (char*) uart->rxbuf;
 	drv->interrupt_ctrl(uart,1);
-	if(rxread>=rxpos)
+	if(rxread>=rxpos){
+		drv->interrupt_ctrl(uart,0);
+		prv->rx_read = 0;
+		prv->rx_pos = 0;
+		drv->interrupt_ctrl(uart,1);
 		return -1;
+	}
+	// rxbuf.......rxread......i......rxpos
 	for(int i=rxread;i<rxpos;i++){
 		if(rxbuf[i]=='\n' || rxbuf[i]=='\r'){
+			rxbuf[i] = '\0';	//jmp \r \n
+			i++;
 			memcpy(buff,&rxbuf[rxread],i-rxread);
-			return i-rxread;
+			drv->interrupt_ctrl(uart,0);
+			
+			if(i >= prv->rx_pos){
+				prv->rx_read =  0;
+				prv->rx_pos = 0;
+			}else{
+				prv->rx_read = i;
+			}
+			drv->interrupt_ctrl(uart,1);
+			return i-rxread-1;	// 1 is \0
 		}
 	}
 	return -1;

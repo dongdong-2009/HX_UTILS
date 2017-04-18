@@ -3,7 +3,9 @@
 #include "stdio.h"
 #include "hxd_param.h"
 #include "time.h"
+#if !defined(HXUTILS_RTOS_SURPPORT)
 static volatile unsigned *g_pclock = 0;
+#endif
 extern int brd_init(void);
 int hx_utils_init(void)
 {
@@ -16,6 +18,7 @@ int hx_utils_init(void)
 	extern const PARAM_DEV_T brd_params;
 	// init clock for tick count
 	hx_register_params(&brd_params);
+#if !defined(HXUTILS_RTOS_SURPPORT)
 	HX_DEV params_d;
 	res = hx_open("param","",&params_d);
 	if(res==0){
@@ -26,7 +29,7 @@ int hx_utils_init(void)
 		}
 	}
 	hx_close(&params_d);
-	
+#endif	
 	//register and init board devices
 	res = brd_init();
 	if(res){
@@ -42,10 +45,14 @@ int hx_utils_init(void)
 
 uint32_t hx_get_tick_count(void)
 {
+#ifdef HXUTILS_RTOS_SURPPORT
+	return HX_OS_TICKCOUNT();
+#else
 	if(g_pclock)
 		return *g_pclock;
 	HX_DBG_PRINTLN("ERROR: call %s",__FUNCTION__);
 	while(1);
+#endif
 }
 
 //int bcd2int(unsigned char bcd)

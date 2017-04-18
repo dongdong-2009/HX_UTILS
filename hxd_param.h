@@ -10,6 +10,7 @@
 
 #include "hx_device.h"
 
+
 typedef struct __PARAM_ITEM_T {
 	const char *name;
 	const char *data_type;

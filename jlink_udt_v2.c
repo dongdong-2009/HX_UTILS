@@ -76,7 +76,7 @@ surpport debug interface:
 
 
 int STDIO_PUTC(int ch, int c);
-int STDIO_GETC(void);
+int STDIO_GETC(int *c);
 
 
 //=====================================================================

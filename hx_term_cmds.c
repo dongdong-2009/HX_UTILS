@@ -9,6 +9,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "hxd_param.h"
+#include "hx_device.h"
 
 static int _dev_open(char *dn, HX_DEV *d)
 {
@@ -474,10 +475,89 @@ bad:
 	hxt_printf("\t %s <dev_name>.<pin_index> %s\n",argv[0],cmd=='m'?"<mode_val>":"");
     return -1;
 }
-
+#ifdef	__DQ1300__
+#include "packet.h"
+HXT_DEF_PROC(dbgdev)
+{
+	int res;
+	#define DBGD_SCRIPT_MAX		(2*512)
+	#define DBGD_BINARY_MAX		(DBGD_SCRIPT_MAX/2)
+	#define DBGBUF_SIZE			(512)
+	uint8_t binary[DBGD_BINARY_MAX];
+	char res_asc[DBGD_SCRIPT_MAX];
+	uint8_t res_bin[DBGD_BINARY_MAX];
+	char dbgbuf[DBGBUF_SIZE];
+	int binlen = 0;
+	struct CMD_ENV env = {0};
+	env.binlen = 0;
+	env.count = 0;
+	env.script = NULL;
+	env.binary = NULL;
+	if(argc>2)
+		goto bad;
+	hxt_printf("Please input device commands:\n");
+	if(argc==2){
+		binlen = strlen(argv[1]);
+		hx_hexcode2bin(argv[1],binlen,binary);
+		env.binary = binary;
+		env.binlen = binlen>>1;
+	}
+	hxt_put(">");
+	for(;;){
+		HX_OS_DELAY(10);
+		char *line = 0;
+		res = hxt_gets_echo_noblock(&line);
+		if(IS_CTRL_CHAR(-res)) {
+			hxt_printf("exit.");
+			return 0;
+		}
+		if(res>=0 && line) {
+			memset(res_asc,0,DBGD_SCRIPT_MAX);
+			memset(res_bin,0,DBGD_BINARY_MAX);
+			memset(dbgbuf,0,DBGBUF_SIZE);
+			env.rasc = res_asc;
+			env.rasc_end = res_asc + DBGD_SCRIPT_MAX;
+			env.rbin = res_bin;
+			env.rbin_end = res_bin + DBGD_BINARY_MAX;
+			env.dbgp = dbgbuf;
+			env.dbgp_end = dbgbuf + DBGBUF_SIZE;
+			res = exec_line(&env,line);
+			switch(res){
+				case 0: hxt_puts("Result: Excute Success.");break;
+				case CE_FORMAT:hxt_puts("Result: Command Format Error.");break;
+				case CE_NO_CMD:hxt_puts("Result: Cannot Find Command.");break;
+				case CE_NULL:hxt_puts("Result: Command is Dummy.");break;
+				case CE_BUFFSIZE:hxt_puts("Result: Command Buffer Overflow");break;
+				case CE_ARG:hxt_puts("Result: Arguement Error.");break;
+				case CE_DEV_INIT:hxt_puts("Result: Device Not Init.");break;
+				case CE_RESOURCE_NOT_FIND:hxt_puts("Result: Resource Not Found.");break;
+				case CE_RESOURCE_FILE_ERROR:hxt_puts("Result: Resource File Error.");break;
+				case CE_RESOURCE_BUFFSIZE:hxt_puts("Result: Resource Recv Buffer Overflow.");break;
+				case CE_RESOURCE_TYPE:hxt_puts("Result: Resource Type Error.");break;
+				case CE_NO_LABEL:hxt_puts("Result: No This Label.");break;
+				case CE_NO_SYSVIEW:hxt_puts("Result: No This System View.");break;
+				case CE_STRING_LENGTH:hxt_puts("Result: String Lenght Too Long.");break;
+				case CE_BINARG_OUT_RANGE:hxt_puts("Result: Arguement Address Out Of Range.");break;
+				default: hxt_printf("Result: Unknown Error. %d",res);break;
+			}
+			hxt_printf("return script :\n%s\n",res_asc);
+			hxt_printf("return binary :[%s]\n",
+				hx_dumphex2str(res_bin,env.rbin-res_bin,res_asc));
+			hxt_puts(dbgbuf);
+			hxt_put(">");
+		}
+	}
+bad:
+    hxt_puts("Usage:");
+	hxt_printf("\t %s [binary] \n",argv[0]);
+	hxt_printf("\t binary : use hex code by 2 ascs describe one byte. \n");
+	hxt_printf("\t          the param length limit in %u bytes max. \n", (int)(DBGD_BINARY_MAX));
+    return -1;
+}
+#endif
 const struct HXT_CMD_T g_cmd_list[] = {
     {"help",	hxt_help,		"显示帮助信息"},
-    {"?",		hxt_help,			"显示帮助信息"},
+    {"?",		hxt_help,		"显示帮助信息"},
     {"clear",	hxt_clear,		"清屏"},
     {"cr",		hxt_cr,			"清屏并重启"},
     {"version",	hxt_version,	"显示版本"},
@@ -493,6 +573,10 @@ const struct HXT_CMD_T g_cmd_list[] = {
     {"wc",		hxt_wc,			"write char device"},
 	{"rc",		hxt_rc,			"read char device"},
     {"param",	hxt_param,		"读取设备参数"},
+	
+#ifdef	__DQ1300__
+	{"dd",		hxt_dbgdev,	"启动调试设备控制台"},
+#endif
 };
 
 int g_cmd_count = sizeof(g_cmd_list)/sizeof(g_cmd_list[0]);

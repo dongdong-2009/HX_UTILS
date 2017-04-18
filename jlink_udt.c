@@ -56,11 +56,20 @@ surpport debug interface:
 #define RETARGET_DUMMY		/* use empty retarget. if not, printf() will dead */
 #endif
 
-#if (__TARGET_ARCH_ARM == 0)	//refrance keil help
-#define ARCH_CORTEXM
+//refrance rtx_lib.c
+#if   (__TARGET_ARCH_6S_M || __TARGET_ARCH_7_M || __TARGET_ARCH_7E_M)
+ #define ARCH_CORTEXM
+#elif (__TARGET_ARCH_7_R)
+ #define ARCH_ARMCR
 #else
-#define ARCH_ARM79
+ #define ARCH_ARM79
 #endif
+
+//#if (__TARGET_ARCH_ARM == 0)	//refrance keil help
+//#define ARCH_CORTEXM
+//#else
+//#define ARCH_ARM79
+//#endif
 
 #if defined(ARCH_CORTEXM)
 	#define JLINK_DMI_TERM
@@ -624,7 +633,7 @@ int jlink_dcc_getc(int *d)
 #ifdef JLINK_DMI_TERM
 
 //must be in ram
-#define TRAD_CTRLBLK_ADDR			(0x10001000)		
+#define TRAD_CTRLBLK_ADDR			(0x10008000 - 512)		
 
 //terminal use ram access directlly  
 typedef __packed struct __TRAD

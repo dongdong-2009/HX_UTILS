@@ -19,7 +19,6 @@
 */
 #define	DISABLE_DEBUG_TAG		""
 
-#ifdef __HX_ENABLE_DEBUG__	
 /*
 	When the debug is enabled, 
 	this control the output info that is show or not. on default state
@@ -49,19 +48,6 @@ extern int hx_debug_enable(int en);
 		HX_DBG_PRINT(__VA_ARGS__);		\
 		HX_DBG_PRINT("\r\n");			\
 	}while(0)
-
-#else
-
-extern int __dummy_op(int p,...);
-#define  HX_DBG_ENABLE(...)		__dummy_op(0,__VA_ARGS__)
-#define  HX_DBG_PRINT(...)    __dummy_op(0,__VA_ARGS__)
-#define  HX_DBG_PRINTLN(...)	__dummy_op(0,__VA_ARGS__)
-#define hx_dbg(...)						__dummy_op(__VA_ARGS__)
-#define hx_dbgi(...)					__dummy_op(__VA_ARGS__)
-#define hx_dbge(...)					__dummy_op(__VA_ARGS__)
-#define hx_debug_enable(...)  __dummy_op(__VA_ARGS__)
-	
-#endif
 
 
 //==========================================================

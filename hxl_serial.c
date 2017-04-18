@@ -5,13 +5,13 @@
 #include "hx_device.h"
 #include "hxd_uart.h"
 
-#define VSPRINTF_BUFF_SIZE		(512)
+#define VSPRINTF_BUFF_SIZE		(800)
 
 //not call ctype.h ,use self is ok
-static int hx_isprint(int c)
-{
-	return c>=0x20 && c<127;
-}
+//static int hx_isprint(int c)
+//{
+//	return c>=0x20 && c<127;
+//}
 /*
  * return 0 is got,others are not
  */
@@ -111,6 +111,41 @@ int hxl_gets_timeout3(HX_DEV *d, char *buff, int buff_size,int timeout,char *pre
 	}
 	return -1;
 }
+int hxl_gets_timeout_match(HX_DEV *d, char *buff,int buff_size,int timeout,
+		const GETS_MATCH_T *tbl, int tblsize)
+{
+	int res;
+	if(tbl==NULL ||timeout<0 ||buff_size<=0 ||buff==NULL || d==NULL)
+		return -1;
+	hx_do_timeout(timeout){
+		res = hxl_gets_noblock(d,buff,buff_size);
+		if(res>=0){
+			for(int i=0;i<tblsize;i++){
+				const char *str = tbl[i].str;
+				int match0_prefix1_sufix2_contains3 = tbl[i].match0_prefix1_sufix2_contains3;
+				if(match0_prefix1_sufix2_contains3 == 0){
+					if(strcmp(str,buff)==0)
+						return i;
+				}else if(match0_prefix1_sufix2_contains3 == 1){
+					int n = strlen(str);
+					if(memcmp(str,buff,n)==0)
+						return i;
+				}else if(match0_prefix1_sufix2_contains3 == 2){
+					int n = strlen(str);
+					int m = strlen(buff);
+					if(memcmp(str,&buff[m-n],n)==0)
+						return i;
+				}else if(match0_prefix1_sufix2_contains3 == 3){
+					if(strstr(buff,str))
+						return i;
+				}else if(match0_prefix1_sufix2_contains3 == -1){
+					return i;
+				}
+			}
+		}
+	}
+	return -1;
+}
 
 /*
  * send
@@ -133,7 +168,11 @@ void hxl_puts(HX_DEV *d, const char *s)
 	hxl_put(d,s);
 	hxl_put(d,"\r\n");
 }
-
+void hxl_flush(HX_DEV *d)
+{
+	hxl_rxclr(d);
+	hxl_send(d,NULL,0);
+}
 
 
 

@@ -98,7 +98,7 @@ namespace hxTestTool
         }
         public string ReciveString(uint size)
         {
-            byte[] res = Recive(size);
+            byte[] res = Recive(size,500);
             if (res == null)
                 return "";
             return System.Text.Encoding.Default.GetString(res);
@@ -109,14 +109,15 @@ namespace hxTestTool
         extern static void CloseComPort(uint port);
         [DllImport("hxSerialProtocol.dll", CallingConvention = CallingConvention.Cdecl)]
         extern static bool Send(uint port,byte[] data, uint len);
-
+        static long last_gets = 0;
         internal string gets()
         {
             string s = "";
             for (;;)
             {
-                s += ReciveString(1);
-                if (s.EndsWith("\r\n"))
+                string ts = ReciveString(1);
+                s += ts;
+                if (s.Length>0 &&(ts=="" || s.EndsWith("\r\n")))
                 {
                     if (s.StartsWith("DEBUG_INFO"))
                     {

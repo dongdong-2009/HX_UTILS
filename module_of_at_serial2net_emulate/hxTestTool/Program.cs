@@ -52,6 +52,7 @@ namespace hxTestTool
             string conf_file = AppDomain.CurrentDomain.BaseDirectory + "config.ini";
             config.LoadIniFile(conf_file);
             config.SaveIniFile();
+           
 
             string fileName = (args.Length > 0) ? args[0] : Assembly.GetExecutingAssembly().Location;
             string buildtime = System.IO.File.GetLastWriteTime(fileName).ToString();
@@ -59,6 +60,15 @@ namespace hxTestTool
             string app_title = "HX Net Module (Universal) Emulate " + version + " build [" + buildtime + "]";
             ConsoleLogWriteLine(app_title);
             ConsoleLogWriteLine("==========================================================");
+
+            FixRemoteIP = config.应用参数.使用固定IP.Trim() == "" ? false : true;
+            if(FixRemoteIP) {
+                Console.WriteLine("使用固定IP:" + config.应用参数.使用固定IP);
+                rm_ip_fix = config.应用参数.使用固定IP;
+            }
+            else {
+                Console.WriteLine("使用命令指定的IP, 如果没有指定便使用默认的:" + config.应用参数.使用固定IP);
+            }
 
             //---------------------------------------------------------------------
             ser = new ComPort();
@@ -149,7 +159,7 @@ namespace hxTestTool
                                 if(ss1.Trim() == "")
                                     throw new System.Exception();
                                 string[] sss1 = ss1.Split(new char[] { '|' });
-                                if(sss1.Length < 2)
+                                if(sss1.Length < 1)
                                     throw new System.Exception();
                                 if(s.StartsWith(sss1[0])) {
                                     IPAddress ip = IPAddress.Parse(rm_ip_fix);
@@ -163,6 +173,7 @@ namespace hxTestTool
                                         List<byte> buf9 = new List<byte>();
                                         buf.Clear();
                                         dellf = true;
+                                        int tickcount = 0;
                                         for(;;) {
                                             try {
                                                 //byte[] bs = ser.Recive(1024,100);
@@ -174,6 +185,7 @@ namespace hxTestTool
                                                 if(bs != null && bs.Length == 1) {
                                                     byte b0 = bs[0];
                                                     if(b0 == '@') {
+                                                        tickcount = System.Environment.TickCount;
                                                         buf9.Clear();
                                                         buf.Clear();
                                                         buf.Add(b0);
@@ -191,9 +203,9 @@ namespace hxTestTool
                                                         buf.Clear();
                                                     }
                                                     else {
-                                                        //if(buf.Count == 0) {
+                                                        if(System.Environment.TickCount - tickcount > 500) {
                                                             buf9.Add(b0);
-                                                       // }
+                                                        }
                                                         if(buf9.Count > 2) {
                                                             string sss = System.Text.Encoding.ASCII.GetString(buf9.ToArray());
                                                             string[] sas = sss.Split(new string[] { "AT" },StringSplitOptions.None);
@@ -295,11 +307,14 @@ namespace hxTestTool
                                         try {
                                             sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                                             sock.Connect(new IPEndPoint(ip, int.Parse(port)));
+                                            //byte[] bbb = new byte[1024];
+                                            //int nnn = sock.Receive(bbb);
                                             ser.puts("CONNECT");
                                             sock.BeginReceive(new byte[2048], 0, 2048, SocketFlags.None, new AsyncCallback(sock_recv_directly), ser);
                                             List<byte> buf = new List<byte>();
                                             List<byte> buf9 = new List<byte>();
                                             buf.Clear();
+                                            int tickcount = 0;
                                             for(;;) {
                                                 try {
                                                     //byte[] bs = ser.Recive(1024,100);
@@ -311,6 +326,7 @@ namespace hxTestTool
                                                     if(bs != null && bs.Length == 1) {
                                                         byte b0 = bs[0];
                                                         if(b0 == '@') {
+                                                            tickcount = System.Environment.TickCount;
                                                             buf9.Clear();
                                                             buf.Clear();
                                                             buf.Add(b0);
@@ -328,9 +344,22 @@ namespace hxTestTool
                                                             buf.Clear();
                                                         }
                                                         else {
-                                                            //if(buf.Count == 0) {
-                                                            buf9.Add(b0);
-                                                            // }
+                                                            if(System.Environment.TickCount - tickcount > 500) {
+                                                                buf9.Add(b0);
+                                                            }
+                                                            if(buf9.Count >= 3) {
+                                                                if(buf9[0] == '+'
+                                                                        && buf9[1] == '+'
+                                                                        && buf9[2] == '+') {
+                                                                        sock.Shutdown(SocketShutdown.Both);
+                                                                        sock.Close();
+                                                                    ser.puts("OK");
+                                                                    WriteLine("+++ DISCONNECT");
+                                                                    log.log("+++ DISCONNECT");
+                                                                    goto reset;
+                                                                }
+                                                                
+                                                            }
                                                             if(buf9.Count > 2) {
                                                                 string sss = System.Text.Encoding.ASCII.GetString(buf9.ToArray());
                                                                 string[] sas = sss.Split(new string[] { "AT" }, StringSplitOptions.None);
@@ -574,6 +603,7 @@ namespace hxTestTool
             try {
                 //Socket rSocket = (Socket)ar.AsyncState;
                 sock.EndReceive(ar);
+                //ar.AsyncWaitHandle.Close();
                 byte[] buffer = new byte[40960];
                 while(true) {
                     int n = sock.Receive(buffer);
@@ -599,7 +629,8 @@ namespace hxTestTool
                 }
                 sock.BeginReceive(new byte[40960], 0, 40960, SocketFlags.None, new AsyncCallback(sock_recv), ser);
             }
-            catch {
+            catch (Exception e){
+                Console.WriteLine(e.Message);
                 try {
                     sock.BeginReceive(new byte[40960], 0, 40960, SocketFlags.None, new AsyncCallback(sock_recv), ser);
                 }
@@ -635,7 +666,8 @@ namespace hxTestTool
                 sock.BeginReceive(new byte[40960], 0, 40960, SocketFlags.None, new AsyncCallback(sock_recv), ser);
             }
             catch {
-                sock.BeginReceive(new byte[40960], 0, 40960, SocketFlags.None, new AsyncCallback(sock_recv), ser);
+                if(sock.Connected)
+                    sock.BeginReceive(new byte[40960], 0, 40960, SocketFlags.None, new AsyncCallback(sock_recv), ser);
             }
         }
 

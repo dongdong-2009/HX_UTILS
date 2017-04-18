@@ -67,9 +67,7 @@ static int g_cursor_pos=0;
 static int g_ctrl_mode = 0;
 
 
-#ifdef __HX_ENABLE_DEBUG__
 int g_enable_debug_output = HX_OUTPUT_STATE_DEFAULT;
-#endif
 
 
 

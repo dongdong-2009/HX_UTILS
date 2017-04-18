@@ -78,9 +78,10 @@ char *hx_strtrim(char *s)
 	"asc 5"			'houxd123'		<=>	"houxd"		
 	"%i 4 ."		[127][0][0][1]	<=> "127.0.0.1"
 	"%d"			100	(DWORD)			<=>	"100"
-	"%hd/%hu"		WORD
-	"%hhd/%hhu"		BYTE
-	"%lld/%llu"		QWORD
+	"%hd/%hu/%hx/%hX"		WORD
+	"%hhd/%hhu/%hhx/%hhX"		BYTE
+	"%lld/%llu/%hhx/%hhX"		QWORD
+	"%c"
 	"msb 2/4/8"
 	"lsb 2/4/8"
 */
@@ -167,7 +168,10 @@ int hx_str2value(const char *s, const char *value_type, void *vres)
         if((strcmp(fmt,"%s")==0)){
 			count = 1;
             size = 0;
-		}else if(strstr(fmt,"d")||strstr(fmt,"i")||strstr(fmt,"u")) {
+		}else if((strcmp(fmt,"%c")==0)){
+			count = 1;
+            size = 1;
+		}else if(strstr(fmt,"d")||strstr(fmt,"i")||strstr(fmt,"u")||strstr(fmt,"X")||strstr(fmt,"x")) {
             if(strstr(fmt,"hh"))
                 size = 1;
             else if(strstr(fmt,"h"))
@@ -275,7 +279,9 @@ int hx_value2str(const void* value,const char *format,
         int size = 0;
         if((strcmp(fmt,"%s")==0))
             size = 0;
-        else if(strstr(fmt,"d")||strstr(fmt,"i")||strstr(fmt,"u")) {
+        else if((strcmp(fmt,"%c")==0))
+            size = 1;
+        else if(strstr(fmt,"d")||strstr(fmt,"i")||strstr(fmt,"u")||strstr(fmt,"X")||strstr(fmt,"x")) {
             if(strstr(fmt,"hh"))
                 size = 1;
             else if(strstr(fmt,"h"))
@@ -403,27 +409,30 @@ uint32_t HX_LSB_B2DW(const void *data)
     res += (uint32_t) d[0];
     return res;
 }
-void HX_LSB_W2B(uint16_t v,void *p)
+uint8_t * HX_LSB_W2B(uint16_t v,void *p)
 {
 	uint8_t *_p = p;
     _p[0] =  0xFF & (v>>0);
     _p[1] =  0xFF & (v>>8);
+	return _p;
 }
-void HX_MSB_W2B(uint16_t v,void *p)
+uint8_t * HX_MSB_W2B(uint16_t v,void *p)
 {
     uint8_t *_p = p;
     _p[0] =  0xFF & (v>>8);
     _p[1] =  0xFF & (v>>0);
+	return _p;
 }
-void HX_MSB_DW2B(uint32_t v,void *p)
+uint8_t * HX_MSB_DW2B(uint32_t v,void *p)
 {
     uint8_t *_p = p;
     _p[0] =  0xFF & (v>>24);
     _p[1] =  0xFF & (v>>16);
     _p[2] =  0xFF & (v>>8);
     _p[3] =  0xFF & (v>>0);
+	return _p;
 }
-void HX_MSB_QW2B(uint64_t v,void *p)
+uint8_t * HX_MSB_QW2B(uint64_t v,void *p)
 {
 	uint8_t *_p = p;
     _p[0] =  0xFF & (v>>56);
@@ -434,16 +443,18 @@ void HX_MSB_QW2B(uint64_t v,void *p)
     _p[5] =  0xFF & (v>>16);
     _p[6] =  0xFF & (v>>8);
     _p[7] =  0xFF & (v>>0);
+	return _p;
 }
-void HX_LSB_DW2B(uint32_t v,void *p)
+uint8_t * HX_LSB_DW2B(uint32_t v,void *p)
 {
     uint8_t *_p = p;
     _p[3] =  0xFF & (v>>24);
     _p[2] =  0xFF & (v>>16);
     _p[1] =  0xFF & (v>>8);
     _p[0] =  0xFF & (v>>0);
+	return _p;
 }
-void HX_LSB_QW2B(uint64_t v,void *p)
+uint8_t *HX_LSB_QW2B(uint64_t v,void *p)
 {
 	uint8_t *_p = p;
     _p[7] =  0xFF & (v>>56);
@@ -454,8 +465,23 @@ void HX_LSB_QW2B(uint64_t v,void *p)
     _p[2] =  0xFF & (v>>16);
     _p[1] =  0xFF & (v>>8);
     _p[0] =  0xFF & (v>>0);
+	return _p;
 }
-
+void HX_W_REV(__packed uint16_t *v)
+{
+	uint8_t buf[2];
+	*v = HX_LSB_B2W(HX_MSB_W2B(*v,buf));
+}
+void HX_DW_REV(__packed uint32_t *v)
+{
+	uint8_t buf[4];
+	*v = HX_LSB_B2DW(HX_MSB_DW2B(*v,buf));
+}
+void HX_QW_REV(__packed uint64_t *v)
+{
+	uint8_t buf[8];
+	*v = HX_LSB_B2QW(HX_MSB_QW2B(*v,buf));
+}
 unsigned char make_bcc(unsigned char init, const void *data, int len)
 {
 	unsigned char res = init;

@@ -139,59 +139,97 @@ int hx_open(const char *dev_name,const char *param, HX_DEV* dev)
 		if(pdev && *pdev && strcmp((*pdev)->name,dev_name)==0){
 			dev->pdev = *pdev;
 			const DEV_DRV_T *driver = (const DEV_DRV_T*)((*pdev)->driver);
+			#ifdef HXUTILS_RTOS_SURPPORT
+			if(dev->pdev->opencntp==NULL || *(dev->pdev->opencntp)==0)
+				HX_MUTEX_INIT(dev->mutex);
+			#endif
 			if(driver && driver->open)
 				return driver->open(dev,param);
 			return 0;
 		}
 	}while(pdev);
-	hxt_printf("device not support.%s\n",dev_name);
 	return -1;
 }
 int hx_read(HX_DEV *dev,void *buf,int size)
 {
+	int res = -1;
+	const DEV_DRV_T *driver;
 	if(!dev) 
-		return -1;
+		return res;
+	HX_MUTEX_WAIT(dev->mutex);
 	if(!dev->pdev)
-		return -2;
-	const DEV_DRV_T *driver = (DEV_DRV_T*)(dev->pdev->driver);
+		goto end;
+	driver = (DEV_DRV_T*)(dev->pdev->driver);
 	if(driver && driver->read)
-		return driver->read(dev,buf,size);
-	return 0;
+		res = driver->read(dev,buf,size);
+	else
+		res = 0;
+end:
+	HX_MUTEX_RELEASE(dev->mutex);
+	return res;
 }
 
 int hx_ioctl(HX_DEV *dev,int cmd,...)
 {
 	int res = -1;
+	const DEV_DRV_T *driver;
+	if(!dev)
+		return res;
+	HX_MUTEX_WAIT(dev->mutex);
+	if(!dev->pdev)
+		goto end;
 	va_list va;
 	va_start(va,cmd);
-	if(!dev ||!dev->pdev)
-		return -2;
-	const DEV_DRV_T *driver = (DEV_DRV_T*)(dev->pdev->driver);
+	driver = (DEV_DRV_T*)(dev->pdev->driver);
 	if(driver && driver->ioctl)
-		return driver->ioctl(dev,cmd,va);
+		res = driver->ioctl(dev,cmd,va);
+	else
+		res = 0;
 	va_end(va);
+end:
+	HX_MUTEX_RELEASE(dev->mutex);
 	return res;
+}
+int hx_flush(HX_DEV *dev)
+{
+	return hx_write(dev,NULL,0);
 }
 int hx_write(HX_DEV *dev,const void *buf,int size)
 {
-	if(!dev) 
-		return -1;
+	int res = -1;
+	const DEV_DRV_T *driver;
+	if(!dev)
+		return res;
+	HX_MUTEX_WAIT(dev->mutex);
 	if(!dev->pdev)
-		return -2;
-	const DEV_DRV_T *driver = (DEV_DRV_T*)(dev->pdev->driver);
+		goto end;
+	driver = (DEV_DRV_T*)(dev->pdev->driver);
 	if(driver && driver->write)
-		return driver->write(dev,buf,size);
-	return 0;
+		res = driver->write(dev,buf,size);
+	else 
+		res = 0;
+end:
+	HX_MUTEX_RELEASE(dev->mutex);
+	return res;	
 }
 int hx_close(HX_DEV *dev)
 {
+	int res = -1;
+	const DEV_DRV_T *driver;
 	if(!dev) 
-		return -1;
+		return res;
+	HX_MUTEX_WAIT(dev->mutex);
 	if(!dev->pdev)
-		return -2;
-	const DEV_DRV_T *driver = (DEV_DRV_T*)(dev->pdev->driver);
+		goto end;
+	driver = (DEV_DRV_T*)(dev->pdev->driver);
 	if(driver && driver->close)
-		return driver->close(dev);
-	return 0;
+		res = driver->close(dev);
+	else
+		res = 0;
+	memset(dev,0,sizeof(*dev));
+end:
+	HX_MUTEX_RELEASE(dev->mutex);
+	HX_MUTEX_UNINIT(dev->mutex);
+	return res;	
 }
 

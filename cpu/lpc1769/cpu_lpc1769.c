@@ -5,7 +5,7 @@
 
 //===============================================================
 // tickcount
-
+#if USE_RTX == 0
 volatile unsigned __g_cpu_tickcount;
 
 uint cpu_get_tickcount(void)
@@ -34,6 +34,7 @@ void TIMER0_IRQHandler (void)
   return;
 }
 
+#endif
 
 void TIMER1_IRQHandler (void)  
 {  
@@ -135,10 +136,12 @@ void reset_timer( uint8_t timer_num )
 
 static uint32_t init_timer ( uint8_t timer_num, uint32_t TimerInterval ,uint32_t SystemFrequency) 
 {
-  uint32_t pclkdiv, pclk;
+  uint32_t pclkdiv, pclk=0;
+	pclk=pclk;
 
   if ( timer_num == 0 )
   {
+#if USE_RTX == 0
 	LPC_SC->PCONP |= (0x01<<1);
 //#if TIMER_MATCH
 //	LPC_PINCON->PINSEL3 &= ~((0x3<<24)|(0x3<<26));
@@ -182,6 +185,7 @@ static uint32_t init_timer ( uint8_t timer_num, uint32_t TimerInterval ,uint32_t
 #endif
 	LPC_TIM0->MCR = (0x3<<0)|(0x3<<3);	/* Interrupt and Reset on MR0 and MR1 */
 	NVIC_EnableIRQ(TIMER0_IRQn);
+#endif
 	return (TRUE);
   }
   else if ( timer_num == 1 )

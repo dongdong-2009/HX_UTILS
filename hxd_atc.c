@@ -14,8 +14,9 @@
 #include "stdarg.h"
 #include "hxd_uart.h"
 #include "hxd_param.h"
+#include "stdint.h"
 
-#define VSPRINTF_BUFF_SIZE  (512)
+#define VSPRINTF_BUFF_SIZE  (800)
 
 /*
 	the interface of net 
@@ -41,9 +42,19 @@ struct NET_PARAM_T g_net_param = {0};
 
 static const PARAM_ITEM_T g_param_tbl[] = {
 	{"step",		"%u",	&g_net_param.step},
-	{"ap",			"%s",	g_net_param.apn},
-	{"rm_ip",		"%hhu 4 .",	g_net_param.rm_ip},
-	{"rm_port",		"%hu",	&g_net_param.rm_port},
+	{"apn",			"%s",	g_net_param.apn},
+	//{"rm_ip",		"%hhu 4 .",	g_net_param.rm_ip},
+	//{"rm_port",		"%hu",	&g_net_param.rm_port},
+	
+	{"w_ssid",		"%s",	g_net_param.w_ssid},
+	{"w_secu_en",	"%u",	&g_net_param.w_secu_en},
+	{"w_psk",		"%s",	g_net_param.w_psk},
+	{"w_dhcp_en",	"%u",	&g_net_param.w_dhcp_en},
+	{"w_lc_ip",		"%hhu 4 .",	g_net_param.w_lc_ip},
+	{"w_lc_mask",	"%hhu 4 .",	g_net_param.w_lc_mask},
+	{"w_lc_gw",		"%hhu 4 .",	g_net_param.w_lc_gw},
+	{"w_lc_dsn1",	"%hhu 4 .",	g_net_param.w_lc_dsn1},
+	{"w_lc_dsn2",	"%hhu 4 .",	g_net_param.w_lc_dsn2},
 };
 
 static const PARAM_DRV_T param_drv = {
@@ -86,15 +97,52 @@ static int atc_open(HX_DEV *dev,const char *param)
 		return nic->init(nic);
 	return 0;
 }
+static NIC_CB_T *at_call_back = NULL;
 static int _atc_ioctl(HX_DEV *dev,int cmd,va_list va)
 {
-	if(cmd!=IOCTL_AT_POLL)
-		return -1;
 	const ATC_DEV_T *atcdev = (const ATC_DEV_T *)dev->pdev;
 	const struct HX_NIC_T *nic = atcdev->nic;
-	if(nic->at_tbl_count == dev->offset)
+	if(cmd==IOCTL_AT_POLL){
+		if(nic->at_tbl_count == dev->offset)
+			return 0;
+		dev->offset = atc_poll(nic,&(atcdev->param->step),atcdev->param);
+	}else if(cmd==IOCTL_AT_NIC_CFG){
+		if(nic->net_config)
+			return nic->net_config(nic);
+		int step = 0;
+		do{
+			dev->offset = step;
+			step= atc_poll(nic,&(atcdev->param->step),atcdev->param);
+			if(step<dev->offset){
+				//网卡复位
+			}
+		}while(step < nic->step_of_endinit);
 		return 0;
-	dev->offset = atc_poll(nic,&(atcdev->param->step),atcdev->param);
+	}else if(cmd == IOCTL_AT_SOCK_CONNECT){
+		if(nic->sock_connect){
+			uint8_t *ip = va_arg(va,uint8_t *);
+			uint16_t port = va_arg(va,uint32_t);
+			uint16_t lc_port = va_arg(va,uint32_t);
+			int *sockid = va_arg(va,int *);
+			*sockid = 0;
+			return nic->sock_connect(nic,ip,port,lc_port,sockid);
+		}
+		return 0;
+	}else if(cmd == IOCTL_AT_SOCK_DISCONNECT){
+		if(nic->sock_disconnect){
+			int *sockid = va_arg(va,int *);
+			return nic->sock_disconnect(nic,sockid);
+		}
+		return 0;
+	}else if(cmd == IOCTL_AT_NIC_CHECKSELF){
+		if(nic->nic_check_self){
+			int *sockid = va_arg(va,int *);
+			return nic->nic_check_self(nic);
+		}
+		return 0;
+	}else if(cmd == IOCTL_AT_CFG_CALLBACK){
+		at_call_back = va_arg(va,NIC_CB_T *);
+	}
 	return -1;
 }
 static int atc_read(HX_DEV *dev,void *buf,int _size)
@@ -179,14 +227,14 @@ int atc_poll(const struct HX_NIC_T *nic, int *pstep, struct NET_PARAM_T *param)
         return tbl_len;
     static int is_send = 0;
     int tmout_at_once = at_tbl[step].tmout_at_once;
-    int try_times = at_tbl[step].trytimes;
+    static int trys = 0;
     static int tmof_last_state_change = -1;
     if(tmof_last_state_change == -1)
         tmof_last_state_change = hx_get_tick_count();
     if(!is_send) {
         if(at_tbl[step].cmd) {	//if has cmd than send it
             //this is delay cmd ???
-            if(try_times == -1 && tmout_at_once>0) {
+            if(at_tbl[step].trytimes == -1 && tmout_at_once>0) {
                 if(hx_check_timeout2(&tmof_last_state_change,tmout_at_once)) {
                     step ++ ;
                     is_send = 0;
@@ -194,12 +242,16 @@ int atc_poll(const struct HX_NIC_T *nic, int *pstep, struct NET_PARAM_T *param)
 				*pstep = step;
                 return step;
             } else {
+				if(trys==0)
+					trys = at_tbl[step].trytimes;
 				hxl_rxclr(&g_at_uart);
                 hxl_printf(&g_at_uart,"%s\r\n",at_tbl[step].cmd);
                 is_send = 1;
                 HX_DBG_PRINT("ATCMD_TX: [%s]\r\n",at_tbl[step].cmd);
             }
         } else if(at_tbl[step].callback) {	//has none, than callback
+			if(trys==0)
+				trys = at_tbl[step].trytimes;
             memset(buff,0,buff_size);
             at_tbl[step].callback(step,AT_PUT,buff,param);
 			hxl_rxclr(&g_at_uart);
@@ -207,6 +259,8 @@ int atc_poll(const struct HX_NIC_T *nic, int *pstep, struct NET_PARAM_T *param)
             is_send = 1;
             HX_DBG_PRINT("ATCMD_TX: [%s]\r\n",buff);
         } else {
+			if(trys==0)
+				trys = at_tbl[step].trytimes;
             //no this stuation
             HX_DBG_PRINT("**error: ATCMD bad line:\r\n");
             HX_DBG_PRINT("\t step: %s\r\n", step);
@@ -232,13 +286,14 @@ again:
                 get_ok = 1;
         }
         if(get_ok) {
+			trys = at_tbl[step].trytimes;
             step ++ ;
             is_send = 0;
             tmof_last_state_change = hx_get_tick_count();
             if(step == tbl_len) {
                 HX_DBG_PRINT("\tModule Init Complete\r\n");
 				*pstep = step;
-                return -1;		//到头了
+                return step;		//到头了
             } else {
 				*pstep = step;
                 return step;
@@ -250,7 +305,11 @@ again:
         res = hx_check_timeout(tmof_last_state_change,tmout_at_once);
         if(res) {
             tmof_last_state_change = hx_get_tick_count();
-            if(--try_times<0) {
+            if(--trys<=0) {
+				if(at_call_back){
+					HX_DBG_PRINT("Tyrs out: %s\r\n",at_tbl[step].err_inf);
+					at_call_back(&at_tbl[step]);
+				}
                 step = 0;
                 is_send = 0;	//复位
 				*pstep = step;
@@ -289,6 +348,11 @@ int atc_gets_timeout(char *bf,int bl,int t)
 {  
 	return hxl_gets_timeout(&g_at_uart,bf,bl,t);
 }
+int atc_gets_timeout_match(char *bf,int bl,int t,
+		const GETS_MATCH_T *tbl, int tblsize)
+{
+	return hxl_gets_timeout_match(&g_at_uart,bf,bl,t,tbl,tblsize);
+}
 void atc_gets_block(char *bf, int bl)
 {   
 	 hxl_gets_block(&g_at_uart,bf,bl);
@@ -313,6 +377,10 @@ void atc_puts(const  char *s)
 {
      hxl_puts(&g_at_uart,s);
 }
+void atc_flush(void)
+{
+	hxl_flush(&g_at_uart);
+}
 int atc_printf(const char *format, ...)
 {
     int res;
@@ -328,5 +396,4 @@ int atc_printf(const char *format, ...)
     hxl_send(&g_at_uart,NULL,0);
     return res;
 }
-
 

@@ -26,23 +26,23 @@
 	Finally,Save and reset module.
 */
 
-static char * ne4110_read_cmd(const char *op,
-	const char *param, char *sres)
-{
-	int res;
-	char buff[128];
-	hx_trys(i,3){
-		atc_printf(">R%s%s\r",op,param);
-		res = atc_gets_timeout(buff,100,500);
-		if(res>0){
-			//<YXX<res>
-			res = sscanf(buff,"<Y%*2s%s",sres);
-			if(res==1)
-				return sres;
-		}
-	}
-	return "ERROR";
-}
+//static char * ne4110_read_cmd(const char *op,
+//	const char *param, char *sres)
+//{
+//	int res;
+//	char buff[128];
+//	hx_trys(i,3){
+//		atc_printf(">R%s%s\r",op,param);
+//		res = atc_gets_timeout(buff,100,500);
+//		if(res>0){
+//			//<YXX<res>
+//			res = sscanf(buff,"<Y%*2s%s",sres);
+//			if(res==1)
+//				return sres;
+//		}
+//	}
+//	return "ERROR";
+//}
 static int ne4110_write_cmd(const char *op,const char *param)
 {
 	int res;
