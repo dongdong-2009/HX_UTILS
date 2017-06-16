@@ -40,7 +40,7 @@ void sb_iomode(uint port,uint pin,uint mode)
 	int trys = SUB_BRD_TRYS;
 	while(trys-->0){
 		HX_DBG_PRINTLN("SB IOMODE port=%u pin=%x. mode=%u",port,pin,mode);
-		hxl_printf(&g_u0_com,"$hx+iomode+3+%x+%x+%x\r\n",
+		hxl_printf(&g_u0_com,"`hx+iomode+3+%x+%x+%x\r\n",
 			port,pin,mode);
 		char buff[64];
 		if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK")>0){
@@ -55,7 +55,7 @@ void sb_ioctrl(uint port,uint val)
 	int trys = SUB_BRD_TRYS;
 	while(trys-->0){
 		HX_DBG_PRINTLN("SB IOCTRL port=%u val=%x.",port,val);
-		hxl_printf(&g_u0_com,"$hx+ioctrl+2+%x+%x\r\n",
+		hxl_printf(&g_u0_com,"`hx+ioctrl+2+%x+%x\r\n",
 			port,val);
 		char buff[64];
 		if(hxl_gets_timeout3(&g_u0_com,buff,64,200,"OK")>0){
@@ -72,7 +72,7 @@ uint sb_ioval(uint port)
 	while(trys-->0){
 		int res ;
 		HX_DBG_PRINTLN("SB IOVAL port=%u.",port);
-		hxl_printf(&g_u0_com,"$hx+ioval+1+%x\r\n",port);
+		hxl_printf(&g_u0_com,"`hx+ioval+1+%x\r\n",port);
 		char buff[64];
 		res = hxl_gets_timeout3(&g_u0_com,buff,64,200,"res=");
 		if(res>0){
@@ -115,10 +115,12 @@ static const IOPIN_DRV_T iopin_drv = {
 	.iotbl = g_iotbl,
 	.tbl_count = sizeof(g_iotbl)/sizeof(g_iotbl[0]),
 };
+static const DEV_T cdev_at_io_pp = 
+	{"at_io_pp",(_IOPIN_ID(1,0,7)|PIN_ATTR_INVERSE),(const DEV_DRV_T*)&iopin_drv};
 static const DEV_T cdev_at_io_pwr = 
-	{"at_io_pwr",(_IOPIN_ID(1,0,7)),(const DEV_DRV_T*)&iopin_drv};
+	{"at_io_pwr",(_IOPIN_ID(1,0,6)|PIN_ATTR_INVERSE),(const DEV_DRV_T*)&iopin_drv};
 static const DEV_T cdev_at_io_rst = 
-	{"at_io_rst",(_IOPIN_ID(1,0,0)),(const DEV_DRV_T*)&iopin_drv};
+	{"at_io_rst",(_IOPIN_ID(1,0,0)|PIN_ATTR_INVERSE),(const DEV_DRV_T*)&iopin_drv};
 
 	
 //--------------------------------------------------------
@@ -260,7 +262,7 @@ int sub_brd_init(void)
 		BRD_DBG_PRINT(stderr,"please init uart0 before init sb\r\n");
 		return -1;
 	}
-	hxl_printf(&g_u0_com,"$hx+version+0\r\n");
+	hxl_printf(&g_u0_com,"`hx+version+0\r\n");
 	char buff[64];
 	do{
 		res = hxl_gets_timeout(&g_u0_com,buff,64,500);
@@ -456,6 +458,7 @@ int brd_init(void)
 	hx_register_uart_device(&cdev_at_uart);
 	
 	//sim800c
+	hx_register_device(&cdev_at_io_pp);
 	hx_register_device(&cdev_at_io_pwr);
 	hx_register_device(&cdev_at_io_rst);
 	

@@ -85,7 +85,7 @@ static int _sock_disconnect(const struct HX_NIC_T *this, int *sockid)
 }
 static int _nic_check_self(const struct HX_NIC_T *this)
 {
-
+	
 	return -1;
 }
 static int _read(const struct HX_NIC_T *this,void *buf,int _size)

@@ -1,11 +1,5 @@
-﻿  jlink_dcc.cpp
-jlink_dcc.cpp(146): warning C4101: “res”: 未引用的局部变量
-jlink_dcc.cpp(332): warning C4554: “&”: 检查运算符优先级可能存在的错误；使用圆括号阐明优先级
-jlink_dcc.cpp(338): warning C4018: “<”: 有符号/无符号不匹配
-  正在生成代码
-  2 of 17 functions (11.8%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+﻿  正在生成代码
+  All 17 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   已完成代码的生成
   jlink_dcc.vcxproj -> D:\HX_UTILS\jlink_dcc_view\Release\jlink_dcc.exe
   jlink_dcc.vcxproj -> D:\HX_UTILS\jlink_dcc_view\Release\jlink_dcc.pdb (Full PDB)

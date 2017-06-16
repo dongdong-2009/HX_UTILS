@@ -6,9 +6,9 @@
   <configuration>
     <name>Debug</name>
     <outputs>
-      <file>$PROJ_DIR$\main.c</file>
-      <file>$PROJ_DIR$\Debug\Exe\c.out</file>
       <file>$PROJ_DIR$\Debug\Obj\main.o</file>
+      <file>$PROJ_DIR$\Debug\Exe\c.out</file>
+      <file>$PROJ_DIR$\main.c</file>
       <file>$PROJ_DIR$\Debug\Obj\main.pbi</file>
       <file>$PROJ_DIR$\Debug\Obj\test.pbd</file>
       <file>$TOOLKIT_DIR$\inc\c\ystdio.h</file>
@@ -28,13 +28,13 @@
       <file>$TOOLKIT_DIR$\lib\shs_l.a</file>
     </outputs>
     <file>
-      <name>[ROOT_NODE]</name>
-      <outputs>
+      <name>$PROJ_DIR$\Debug\Exe\c.out</name>
+      <inputs>
         <tool>
           <name>ILINK</name>
-          <file> 1</file>
+          <file> 18 0 19 15 16 17</file>
         </tool>
-      </outputs>
+      </inputs>
     </file>
     <file>
       <name>$PROJ_DIR$\main.c</name>
@@ -45,7 +45,7 @@
         </tool>
         <tool>
           <name>ICCARM</name>
-          <file> 2</file>
+          <file> 0</file>
         </tool>
       </outputs>
       <inputs>
@@ -60,13 +60,13 @@
       </inputs>
     </file>
     <file>
-      <name>$PROJ_DIR$\Debug\Exe\c.out</name>
-      <inputs>
+      <name>[ROOT_NODE]</name>
+      <outputs>
         <tool>
           <name>ILINK</name>
-          <file> 18 2 19 15 16 17</file>
+          <file> 1</file>
         </tool>
-      </inputs>
+      </outputs>
     </file>
   </configuration>
   <configuration>

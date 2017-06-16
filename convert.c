@@ -482,6 +482,21 @@ void HX_QW_REV(__packed uint64_t *v)
 	uint8_t buf[8];
 	*v = HX_LSB_B2QW(HX_MSB_QW2B(*v,buf));
 }
+uint64_t HX_W_REV2(uint16_t v)
+{
+	uint8_t buf[2];
+	return HX_LSB_B2W(HX_MSB_W2B(v,buf));
+}
+uint64_t HX_DW_REV2(uint32_t v)
+{
+	uint8_t buf[4];
+	return HX_LSB_B2DW(HX_MSB_DW2B(v,buf));
+}
+uint64_t HX_QW_REV2(uint64_t v)
+{
+	uint8_t buf[8];
+	return HX_LSB_B2QW(HX_MSB_QW2B(v,buf));
+}
 unsigned char make_bcc(unsigned char init, const void *data, int len)
 {
 	unsigned char res = init;

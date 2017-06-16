@@ -116,6 +116,8 @@ int _rf1516_frame(uint8_t *txbuf,int txlen,uint8_t *rxbuf,int *rxlen, uint8_t *r
 			goto again;
 		break;
 	}while(trys-->0);
+	if(trys<=0)
+		return -998;
 	
 	hx_uart_send(UART1_1516,(const char*)tmp,p-tmp);
 

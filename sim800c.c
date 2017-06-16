@@ -78,7 +78,8 @@ static const struct ATCMD_T at_tbl[] = {
 	//{NULL/*"AT+CIPSTART=\"TCP\",\"180.89.58.27\",\"9020\""*/,	
 	//						NULL/*"CONNECT"*/,	30000,5, 		check_connect},
 };
-
+//AT+CSTT="cmnet","yqcxgj@yqsys.wzyd","654321"
+//AT+CIPSTART="TCP","172.32.253.29","700"
 //static const struct ATCMD_T at_tbl[] = {
 //	//cmd					res			timeout		trytimes	check_res_proc
 //	{"AT",					"AT",		2000,		20, 		0},

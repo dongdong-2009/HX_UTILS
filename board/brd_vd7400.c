@@ -240,23 +240,23 @@ int brd_init(void)
 	cpu_init_tickcount_1m_by_pclk(__get_fpclk());
 	for(int i=0;i<sizeof(cdev_gpio_tbl)/sizeof(cdev_gpio_tbl[0]);
 		i++){
-		hx_register_char_device(&cdev_gpio_tbl[i]);
+		hx_register_device(&cdev_gpio_tbl[i]);
 	}
 	hx_register_uart_device(&cdev_uart0);
 	hx_register_uart_device(&cdev_uart1);
 	hx_register_uart_device(&cdev_uart2);
 	hx_register_uart_device(&cdev_uart3);
-	hx_register_char_device(&cdev_sbio);
+	hx_register_device(&cdev_sbio);
 	
 	hx_register_uart_device(&cdev_at_uart);
 	
 	//sim800c
-	hx_register_char_device(&cdev_at_io_pwr);
-	hx_register_char_device(&cdev_at_io_rst);
+	hx_register_device(&cdev_at_io_pwr);
+	hx_register_device(&cdev_at_io_rst);
 	
-	hx_register_char_device((DEV_T*)&g_cdev_sim800c);
-	hx_register_char_device((DEV_T*)&g_cdev_sim7600c);
-	hx_register_char_device((DEV_T*)&g_cdev_me3630);
+	hx_register_device((DEV_T*)&g_cdev_sim800c);
+	hx_register_device((DEV_T*)&g_cdev_sim7600c);
+	hx_register_device((DEV_T*)&g_cdev_me3630);
 	
 	return 0;
 }

@@ -47,12 +47,13 @@ static const IOPORT_DRV_T gpio_drv = {
 	.drv = HX_IOPORT_STD_DRIVER,
 	.iodesc = &mbio,
 };
-static const DEV_T cdev_gpio_tbl[] = {
-	{"P0", 0,(const DEV_DRV_T*)&gpio_drv},
-	{"P1", 1,(const DEV_DRV_T*)&gpio_drv},
-	{"P2", 2,(const DEV_DRV_T*)&gpio_drv},
-};
+static const DEV_T cdev_gpio0 = {"P0", 0,(const DEV_DRV_T*)&gpio_drv};
+static const DEV_T cdev_gpio1 = {"P1", 1,(const DEV_DRV_T*)&gpio_drv};
+static const DEV_T cdev_gpio2 = {"P2", 2,(const DEV_DRV_T*)&gpio_drv};
 
+HX_REGISTER_DEVICE(cdev_gpio0);
+HX_REGISTER_DEVICE(cdev_gpio1);
+HX_REGISTER_DEVICE(cdev_gpio2);
 //-----------------------------------------------------------------
 static const IOPIN_DRV_T iopin_drv = {
 	.drv = HX_IOPIN_STD_DRIVER,
@@ -63,6 +64,9 @@ static const DEV_T cdev_at_io_pwr =
 	{"at_io_pwr",(_IOPIN_ID(0,3,25)),(const DEV_DRV_T*)&iopin_drv};
 static const DEV_T cdev_at_io_rst = 
 	{"at_io_rst",(_IOPIN_ID(0,3,26)),(const DEV_DRV_T*)&iopin_drv};
+	
+HX_REGISTER_DEVICE(cdev_at_io_pwr);
+HX_REGISTER_DEVICE(cdev_at_io_rst);
 	
 static const DEV_T io_pin2 = {"io_pin2",(_IOPIN_ID(0,3,25)),(const DEV_DRV_T*)&iopin_drv};	
 static const DEV_T io_pin6 = {"io_pin6",(_IOPIN_ID(0,1,23)),(const DEV_DRV_T*)&iopin_drv};	
@@ -198,7 +202,7 @@ static const UART_DEV_T cdev_at_uart = {
 	.prv = &uart0_prv,
 };
 //-------------------------------------------------------
-#define UART1_BUFSIZ			(512)
+#define UART1_BUFSIZ			(700)
 #define UART1_DEF_BANDRATE		(38400)
 static UART_PRIVATE_T uart1_prv;
 char uart1_txbuf[UART1_BUFSIZ],uart1_rxbuf[UART1_BUFSIZ];
@@ -235,6 +239,11 @@ static const UART_DEV_T cdev_emu485_uart = {
 	.default_bps = 57600,
 	.prv = &uart2_prv,
 };
+
+HX_REGISTER_DEVICE(cdev_uart0);
+HX_REGISTER_DEVICE(cdev_at_uart);
+HX_REGISTER_DEVICE(cdev_uart1);
+HX_REGISTER_DEVICE(cdev_uart2);
 HX_REGISTER_DEVICE(cdev_emu485_uart);
 //-------------------------------------------------------
 const ATC_DEV_T g_cdev_sim800c = {
@@ -248,6 +257,10 @@ const ATC_DEV_T g_cdev_sim7600c = {
 	.param = &g_net_param,
 	.nic = &nic_sim7600c,
 };
+
+HX_REGISTER_DEVICE(g_cdev_sim800c);
+HX_REGISTER_DEVICE(g_cdev_sim7600c);
+
 const ATC_DEV_T g_cdev_me3630_c1a = {
 	.dev = {"me3630_c1a",0,&hx_atc_drv},
 	.param = &g_net_param,
@@ -258,6 +271,9 @@ const ATC_DEV_T g_cdev_me3630_c1b = {
 	.param = &g_net_param,
 	.nic = &nic_me3630_pid_c1b,
 };
+HX_REGISTER_DEVICE(g_cdev_me3630_c1a);
+HX_REGISTER_DEVICE(g_cdev_me3630_c1b);
+
 const ATC_DEV_T g_cdev_rak415 = {
 	.dev = {"rak415",0,&hx_atc_drv},
 	.param = &g_net_param,
@@ -355,26 +371,26 @@ int brd_init(void)
 #if USE_RTX == 0
 	timer_init_use_for_tickcount(__get_sysclk());
 #endif	
-	for(int i=0;i<sizeof(cdev_gpio_tbl)/sizeof(cdev_gpio_tbl[0]);
-		i++){
-		hx_register_device(&cdev_gpio_tbl[i]);
-	}
-	hx_register_uart_device(&cdev_uart0);
-	hx_register_uart_device(&cdev_uart1);
-	hx_register_uart_device(&cdev_uart2);
-	hx_register_uart_device(&cdev_at_uart);
+//	for(int i=0;i<sizeof(cdev_gpio_tbl)/sizeof(cdev_gpio_tbl[0]);
+//		i++){
+//		hx_register_device(&cdev_gpio_tbl[i]);
+//	}
+//	hx_register_uart_device(&cdev_uart0);
+//	hx_register_uart_device(&cdev_uart1);
+//	hx_register_uart_device(&cdev_uart2);
+//	hx_register_uart_device(&cdev_at_uart);
 	
 	//sim800c
-	hx_register_device(&cdev_at_io_pwr);
-	hx_register_device(&cdev_at_io_rst);
+//	hx_register_device(&cdev_at_io_pwr);
+//	hx_register_device(&cdev_at_io_rst);
 	
 	//sim7100c
-	hx_register_device((DEV_T*)&g_cdev_me3630_c1a);
-	hx_register_device((DEV_T*)&g_cdev_me3630_c1b);
+//	hx_register_device((DEV_T*)&g_cdev_me3630_c1a);
+//	hx_register_device((DEV_T*)&g_cdev_me3630_c1b);
 	
-	
-	hx_register_device((DEV_T*)&g_cdev_sim800c);
-	hx_register_device((DEV_T*)&g_cdev_sim7600c);
+//	
+//	hx_register_device((DEV_T*)&g_cdev_sim800c);
+//	hx_register_device((DEV_T*)&g_cdev_sim7600c);
 	
 	
 	return 0;

@@ -7,7 +7,7 @@
 
 #pragma anon_unions
 
-#define MAX_DEVICE_COUNT				(64)
+#define MAX_DEVICE_COUNT				(16)
 
 #define IOCTL_CFG_BUFFER			(-1)
 #define IOCTL_PSAM_RST				(9)
@@ -46,7 +46,7 @@ typedef enum {
 typedef struct __DEV_T{
 	const char *name;
 	int devid;	
-	const DRIVER_T *driver;
+	const void *driver;
 	DEVTYPE_T devtype;
 #ifdef HXUTILS_RTOS_SURPPORT
 	int *opencntp;		//device open count 

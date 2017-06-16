@@ -64,8 +64,8 @@ int hxd_iopin_write(HX_DEV *dev,const void *buf, int size)
 	const DEV_T *pdev = dev->pdev;
 	const IOPIN_DRV_T *drv = (const IOPIN_DRV_T *)pdev->driver;
 	uint id = pdev->devid;
-	uint board =  (id>>12) & 0xFFu;
-	uint port = (id>>8) & 0xFFu;
+	uint board =  (id>>12) & 0x0Fu;
+	uint port = (id>>8) & 0x0Fu;
 	uint pin = id & 0xFFu;
 	char *p = (char*)buf;
 	int set = p[0];

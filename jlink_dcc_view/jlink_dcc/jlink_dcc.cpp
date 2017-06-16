@@ -29,7 +29,7 @@ UINT32 (*JLINKARM_WriteDCCFast)(const UINT32 *buf, UINT32 size, INT timeout);
 UINT32 (*JLINKARM_WaitDCCRead)(UINT32 timeout);
 void (*JLINKARM_SetSpeed)(UINT32 spd);
 UINT32(*JLINKARM_ExecCommand)(const char* cmd,UINT32 a,UINT32 b);
-
+UINT32(__stdcall *JLINK_TIF_Select)(UINT32 tif);
 int load_jlinkarm_dll(void)
 {
 	HINSTANCE lib = LoadLibrary("JLinkARM.dll");
@@ -51,7 +51,7 @@ int load_jlinkarm_dll(void)
 	JLINKARM_WaitDCCRead = (UINT32(*)(UINT32))GetProcAddress(lib, "JLINKARM_WaitDCCRead");
 	JLINKARM_SetSpeed = (void(*)(UINT32))GetProcAddress(lib, "JLINKARM_SetSpeed");
 	JLINKARM_ExecCommand = (UINT32(*)(const char *, UINT32, UINT32))GetProcAddress(lib, "JLINKARM_ExecCommand");
-
+	JLINK_TIF_Select = (UINT32(__stdcall*)(UINT32))GetProcAddress(lib, "JLINK_TIF_Select");
 	return 0;
 }
 
@@ -255,6 +255,12 @@ int main(int argc, char *argv[])
 	//UINT32 fast_mode = GetPrivateProfileInt("JLINKARM", "fast_mode", 1, config_file);
 
 	printf("Open JLink ... ");
+#define JLINKARM_TIF_JTAG	0
+#define JLINKARM_TIF_SWD	1
+#define JLINKARM_TIF_DBM3	2
+#define JLINKARM_TIF_FINE	3
+#define JLINKARM_TIF_2wire_JTAG_PIC32	4
+	JLINK_TIF_Select(JLINKARM_TIF_JTAG);
 	JLINKARM_Open();
 	if (JLINKARM_IsOpen())
 	{

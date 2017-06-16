@@ -223,12 +223,15 @@ static const struct ATCMD_T at_tbl_for_c1b[] = {
 	{"AT+CREG?",			NULL,		2000,		20,			on_creg},
 	{"AT+ZPAS?",				NULL,		2000,		20,			on_zpas},
 //	{"AT$MYNETINFO=1",		"OK",		2000,		5,			0},
-	{"AT$MYNETCON=0,\"APN\",\"CMIOTDLMZK.LN\"",		
-							"OK",		2000,		5,			0},
+	//{"AT$MYNETCON=0,\"APN\",\"CMIOTDLMZK.LN\"",		
+	//						"OK",		2000,		5,			0},
 	//{"AT$MYNETCON=0,\"USERPWD\",\",\"",		
 	//						"OK",		2000,		5,			0},
+	{"AT$MYNETCON=0,\"USERPWD\",\"CARD\",\"CARD\"",		
+							"OK",		2000,		5,			0},
+	
 	{"AT$MYNETACT=0,1",		NULL,		2000,		5,			on_netact},
-	{"AT$MYNETCREATE=0,0,0,\"10.10.10.45\",700,9020",	
+	{"AT$MYNETCREATE=0,0,0,\"180.89.58.27\",9020,9020",	
 							NULL,		3000,		5,			on_connect},
 };
 
@@ -275,6 +278,10 @@ static int _init_me3630_pid_c1a(const struct HX_NIC_T *this)
 
 static int _init_me3630_pid_c1b(const struct HX_NIC_T *this)
 {
+	HX_DEV d;
+	hx_open("at_io_pp","1",&d);
+	hx_write(&d,"\x00",1);
+	
 	nic_pwr(1);
 	nic_rst(1);
 	hx_delay_ms(100);		

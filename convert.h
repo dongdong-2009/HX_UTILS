@@ -45,7 +45,9 @@ extern uint8_t *HX_LSB_QW2B(uint64_t v,void *p);
 extern void HX_W_REV(__packed uint16_t *v);
 extern void HX_DW_REV(__packed uint32_t *v);
 extern void HX_QW_REV(__packed uint64_t *v);
-
+extern uint64_t HX_W_REV2(uint16_t v);
+extern uint64_t HX_DW_REV2(uint32_t v);
+extern uint64_t HX_QW_REV2(uint64_t v);
 
 //==========================================================
 // convert str <=> value with fmt
